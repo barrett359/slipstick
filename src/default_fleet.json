@@ -1,0 +1,215 @@
+{
+  "schema_version": 2,
+  "settings": {
+    "f_exh": 0.753,
+    "eta_noz": 0.85,
+    "ve_max_m_s": 2300000,
+    "ve_gear_min_m_s": 50000,
+    "g": 9.81,
+    "sigma": 5.67e-8,
+    "li_sink_mj_per_kg": 4.6,
+    "li_vent_mj_per_kg": 19.6,
+    "flywheel_mj_per_t": 9000,
+    "tank_prop_per_mass": 25,
+    "laser_cutoff_mm_s": 0.5,
+    "eta_drill": 0.5,
+    "laser_eta_wall": 0.4,
+    "pulse_missile_s": 0.01,
+    "pulse_ship_s": 0.5,
+    "kill_threshold_mm": 10,
+    "open_fire_factor": 1.5,
+    "prop_mh_ve_m_s": 16700,
+    "prop_am_isp_s": 3000,
+    "prop_fusion_isp_s": 20000,
+    "as_target_accel_mg": 5,
+    "as_reactor_t_per_tw": 750,
+    "as_nozzle_cap_factor": 10,
+    "as_nozzle_t_per_mn": 30,
+    "as_rad_load_frac": 0.1,
+    "as_hot_t_k": 2000,
+    "as_hot_eps": 0.9,
+    "as_hot_mw_per_kg": 0.326592,
+    "as_low_area_frac": 0.25,
+    "as_low_t_k": 500,
+    "as_low_eps": 0.9,
+    "as_low_mw_per_kg": 0.0015946875,
+    "as_structure_frac": 0.08,
+    "as_sink_endurance_min": 30,
+    "as_sink_extra_mass_factor": 1.1,
+    "as_flywheel_fire_s": 30,
+    "g_const": 6.674e-11,
+    "c_m_s": 299792458,
+    "map_tick_s": 3600,
+    "map_substep_s": 60,
+    "map_project_d": 10
+  },
+  "materials": [
+    { "name": "Aluminum", "rho": 2700, "e_vap_mj": 13.6 },
+    { "name": "Steel", "rho": 7850, "e_vap_mj": 8.2 },
+    { "name": "Titanium", "rho": 4500, "e_vap_mj": 11.2 },
+    { "name": "Ti-C hybrid (missile hull)", "rho": 4000, "e_vap_mj": 35 },
+    { "name": "Carbon composite", "rho": 1600, "e_vap_mj": 43 },
+    { "name": "CNT composite", "rho": 1300, "e_vap_mj": 55 },
+    { "name": "Radiator panel (C-C)", "rho": 1800, "e_vap_mj": 59.5 },
+    { "name": "Tungsten (radiator)", "rho": 19300, "e_vap_mj": 6.0 },
+    { "name": "Rock/regolith", "rho": 2700, "e_vap_mj": 14 },
+    { "name": "Water ice", "rho": 920, "e_vap_mj": 3.0 }
+  ],
+  "missiles": [
+    { "id": "mh164", "name": "MH-164 Asmodeus", "payload_kg": 0,
+      "stages": [{ "id": "mh164-stage-1", "name": "Main stage", "dry_mass_kg": 100, "propellant_kg": 1900, "propulsion": "mh", "a0_g": 10, "jettison": false }],
+      "default_phases": [{ "stage_id": "mh164-stage-1", "prop_frac": 0.35, "coast_to_range_m": 25000000 }, { "stage_id": "mh164-stage-1", "prop_frac": 0.65, "coast_to_range_m": null }] },
+    { "id": "shipkiller", "name": "Standard ship-killer", "payload_kg": 0,
+      "stages": [{ "id": "shipkiller-stage-1", "name": "Main stage", "dry_mass_kg": 66.6666666667, "propellant_kg": 933.3333333333, "propulsion": "mh", "a0_g": 8, "jettison": false }],
+      "default_phases": [{ "stage_id": "shipkiller-stage-1", "prop_frac": 0.35, "coast_to_range_m": 25000000 }, { "stage_id": "shipkiller-stage-1", "prop_frac": 0.65, "coast_to_range_m": null }] },
+    { "id": "interceptor", "name": "Interceptor", "payload_kg": 0,
+      "stages": [{ "id": "interceptor-stage-1", "name": "Main stage", "dry_mass_kg": 25, "propellant_kg": 175, "propulsion": "mh", "a0_g": 15, "jettison": false }],
+      "default_phases": [{ "stage_id": "interceptor-stage-1", "prop_frac": 1, "coast_to_range_m": null }] },
+    { "id": "am_precision", "name": "AM precision round", "payload_kg": 0,
+      "stages": [{ "id": "am_precision-stage-1", "name": "Main stage", "dry_mass_kg": 50, "propellant_kg": 950, "propulsion": "am", "isp_s": 3000, "a0_g": 12, "jettison": false }],
+      "default_phases": [{ "stage_id": "am_precision-stage-1", "prop_frac": 0.35, "coast_to_range_m": 25000000 }, { "stage_id": "am_precision-stage-1", "prop_frac": 0.65, "coast_to_range_m": null }] }
+  ],
+  "designs": [
+    {
+      "id": "battleship",
+      "name": "Ascendant-class battleship",
+      "class": "battleship",
+      "mr": 8,
+      "structure_t": 37650,
+      "structure_auto": true,
+      "note": "Canon inconsistency, flagged in the design doc: 16 TW gives ~1.2 milligee at 720 kt wet, rising to ~10 mg near dry mass. The calculator computes honestly. The auto-sizer will show what a higher target accel actually costs.",
+      "components": [
+        { "id": "bb-reactor", "kind": "reactor", "name": "Main fusion plant", "mass_t": 12000, "p_fusion_w": 1.6e13, "rad_load_frac": 0.10, "auto": true },
+        { "id": "bb-nozzle", "kind": "nozzle", "name": "Drive nozzle", "mass_t": 3000, "f_max_n": 1.0e8, "auto": true },
+        { "id": "bb-radhot", "kind": "radiator_hot", "name": "Hot loop (deployed always)", "mw_per_kg": 0.326592, "area_m2": 2.0e6, "t_k": 2000, "eps": 0.9, "auto": true },
+        { "id": "bb-radlow", "kind": "radiator_low", "name": "Low-temp loop (retractable)", "mw_per_kg": 0.0015946875, "area_m2": 5.0e5, "t_k": 500, "eps": 0.9, "auto": true },
+        { "id": "bb-sink", "kind": "heat_sink", "name": "Lithium heat sink", "mass_t": 550, "li_t": 500, "auto": true },
+        { "id": "bb-fly", "kind": "flywheel", "name": "Flywheel banks", "mass_t": 200, "auto": true },
+        { "id": "bb-laser-main", "kind": "laser", "name": "Main battery", "mass_t": 2500, "count": 1, "p_beam_w": 1.0e10, "aperture_m": 30, "lambda_m": 2.0e-7, "eta_wall": 0.4, "t_pulse_s": 0.5,
+          "profiles": [
+            { "id": "bbm-p1", "name": "Missile kill", "material": "Ti-C hybrid (missile hull)", "t_pulse_s": 0.01, "threshold_mm": 10 },
+            { "id": "bbm-p2", "name": "Ship kill — radiator ablation", "material": "Tungsten (radiator)", "t_pulse_s": 0.5, "threshold_mm": 10 }
+          ] },
+        { "id": "bb-laser-sec", "kind": "laser", "name": "Secondary battery", "mass_t": 400, "count": 6, "p_beam_w": 2.0e9, "aperture_m": 10, "lambda_m": 2.0e-7, "eta_wall": 0.4, "t_pulse_s": 0.5,
+          "profiles": [
+            { "id": "bbs-p1", "name": "Missile kill", "material": "Ti-C hybrid (missile hull)", "t_pulse_s": 0.01, "threshold_mm": 10 }
+          ] },
+        { "id": "bb-mag-1", "kind": "magazine", "name": "Asmodeus cells", "mass_t": 100, "missile_id": "mh164", "capacity": 100 },
+        { "id": "bb-mag-int", "kind": "magazine", "name": "Interceptor cells", "mass_t": 120, "missile_id": "interceptor", "capacity": 400 },
+        { "id": "bb-tank", "kind": "tank", "name": "Propellant tankage", "mass_t": 25200, "auto": true }
+      ]
+    },
+    {
+      "id": "missile_carrier",
+      "name": "Vespers-class missile carrier",
+      "class": "missile carrier",
+      "mr": 8,
+      "structure_t": 23720,
+      "structure_auto": true,
+      "components": [
+        { "id": "mc-reactor", "kind": "reactor", "name": "Main fusion plant", "mass_t": 7500, "p_fusion_w": 1.0e13, "rad_load_frac": 0.10, "auto": true },
+        { "id": "mc-nozzle", "kind": "nozzle", "name": "Drive nozzle", "mass_t": 2000, "f_max_n": 8.0e7, "auto": true },
+        { "id": "mc-radhot", "kind": "radiator_hot", "name": "Hot loop", "mw_per_kg": 0.3189375, "area_m2": 1.25e6, "t_k": 2000, "eps": 0.9, "auto": true },
+        { "id": "mc-radlow", "kind": "radiator_low", "name": "Low-temp loop", "mw_per_kg": 0.0015946875, "area_m2": 3.0e5, "t_k": 500, "eps": 0.9, "auto": true },
+        { "id": "mc-sink", "kind": "heat_sink", "name": "Lithium heat sink", "mass_t": 330, "li_t": 300, "auto": true },
+        { "id": "mc-fly", "kind": "flywheel", "name": "Flywheel banks", "mass_t": 100, "auto": true },
+        { "id": "mc-pdl", "kind": "laser", "name": "Standard PDL", "mass_t": 250, "count": 4, "p_beam_w": 1.5e9, "aperture_m": 3, "lambda_m": 2.0e-7, "eta_wall": 0.4, "t_pulse_s": 0.01,
+          "profiles": [
+            { "id": "mcp-p1", "name": "Missile kill", "material": "Ti-C hybrid (missile hull)", "t_pulse_s": 0.01, "threshold_mm": 10 }
+          ] },
+        { "id": "mc-mag-sk", "kind": "magazine", "name": "Ship-killer cells", "mass_t": 400, "missile_id": "shipkiller", "capacity": 400 },
+        { "id": "mc-mag-asmo", "kind": "magazine", "name": "Asmodeus cells", "mass_t": 80, "missile_id": "mh164", "capacity": 60 },
+        { "id": "mc-mag-int", "kind": "magazine", "name": "Interceptor cells", "mass_t": 60, "missile_id": "interceptor", "capacity": 200 },
+        { "id": "mc-mag-am", "kind": "magazine", "name": "AM precision cells", "mass_t": 30, "missile_id": "am_precision", "capacity": 20 },
+        { "id": "mc-tank", "kind": "tank", "name": "Propellant tankage", "mass_t": 15400, "auto": true }
+      ]
+    },
+    {
+      "id": "drone_carrier",
+      "name": "Hivewright-class drone carrier",
+      "class": "drone carrier",
+      "mr": 8,
+      "structure_t": 17395,
+      "structure_auto": true,
+      "components": [
+        { "id": "dc-reactor", "kind": "reactor", "name": "Main fusion plant", "mass_t": 6000, "p_fusion_w": 8.0e12, "rad_load_frac": 0.10, "auto": true },
+        { "id": "dc-nozzle", "kind": "nozzle", "name": "Drive nozzle", "mass_t": 1800, "f_max_n": 6.0e7, "auto": true },
+        { "id": "dc-radhot", "kind": "radiator_hot", "name": "Hot loop", "mw_per_kg": 0.31403076923076924, "area_m2": 1.0e6, "t_k": 2000, "eps": 0.9, "auto": true },
+        { "id": "dc-radlow", "kind": "radiator_low", "name": "Low-temp loop", "mw_per_kg": 0.0015946875, "area_m2": 3.0e5, "t_k": 500, "eps": 0.9, "auto": true },
+        { "id": "dc-sink", "kind": "heat_sink", "name": "Lithium heat sink", "mass_t": 275, "li_t": 250, "auto": true },
+        { "id": "dc-fly", "kind": "flywheel", "name": "Flywheel banks", "mass_t": 150, "auto": true },
+        { "id": "dc-pdl", "kind": "laser", "name": "Standard PDL", "mass_t": 250, "count": 4, "p_beam_w": 1.5e9, "aperture_m": 3, "lambda_m": 2.0e-7, "eta_wall": 0.4, "t_pulse_s": 0.01,
+          "profiles": [
+            { "id": "dcp-p1", "name": "Missile kill", "material": "Ti-C hybrid (missile hull)", "t_pulse_s": 0.01, "threshold_mm": 10 }
+          ] },
+        { "id": "dc-bays", "kind": "other", "name": "Drone bays & shops", "mass_t": 6000, "note": "Drone endurance tracking deferred to v2." },
+        { "id": "dc-mag-int", "kind": "magazine", "name": "Interceptor cells", "mass_t": 100, "missile_id": "interceptor", "capacity": 400 },
+        { "id": "dc-tank", "kind": "tank", "name": "Propellant tankage", "mass_t": 14000, "auto": true }
+      ]
+    },
+    {
+      "id": "corvette",
+      "name": "Dirk-class corvette",
+      "class": "corvette",
+      "mr": 4,
+      "structure_t": 2342,
+      "structure_auto": true,
+      "components": [
+        { "id": "cv-reactor", "kind": "reactor", "name": "Fusion plant", "mass_t": 750, "p_fusion_w": 1.0e12, "rad_load_frac": 0.10, "auto": true },
+        { "id": "cv-nozzle", "kind": "nozzle", "name": "Drive nozzle", "mass_t": 200, "f_max_n": 1.0e7, "auto": true },
+        { "id": "cv-radhot", "kind": "radiator_hot", "name": "Hot loop", "mw_per_kg": 0.30927272727272726, "area_m2": 1.25e5, "t_k": 2000, "eps": 0.9, "auto": true },
+        { "id": "cv-radlow", "kind": "radiator_low", "name": "Low-temp loop", "mw_per_kg": 0.0015946875, "area_m2": 4.0e4, "t_k": 500, "eps": 0.9, "auto": true },
+        { "id": "cv-sink", "kind": "heat_sink", "name": "Lithium heat sink", "mass_t": 55, "li_t": 50, "auto": true },
+        { "id": "cv-fly", "kind": "flywheel", "name": "Flywheel banks", "mass_t": 20, "auto": true },
+        { "id": "cv-laser", "kind": "laser", "name": "Spinal laser", "mass_t": 600, "count": 1, "p_beam_w": 5.0e9, "aperture_m": 15, "lambda_m": 2.0e-7, "eta_wall": 0.4, "t_pulse_s": 0.5,
+          "profiles": [
+            { "id": "cvl-p1", "name": "Missile kill", "material": "Ti-C hybrid (missile hull)", "t_pulse_s": 0.01, "threshold_mm": 10 },
+            { "id": "cvl-p2", "name": "Ship kill — radiator ablation", "material": "Tungsten (radiator)", "t_pulse_s": 0.5, "threshold_mm": 10 }
+          ] },
+        { "id": "cv-mag-int", "kind": "magazine", "name": "Interceptor cells", "mass_t": 15, "missile_id": "interceptor", "capacity": 40 },
+        { "id": "cv-tank", "kind": "tank", "name": "Propellant tankage", "mass_t": 600, "auto": true }
+      ]
+    }
+  ],
+  "states": [
+    {
+      "id": "ship-ascendant",
+      "name": "ISV Ascendant",
+      "design_id": "battleship",
+      "propellant_t": 630000,
+      "velocity_kms": 0,
+      "sink_mj": 0,
+      "sink_capacity_mj": 2300000,
+      "flywheel_mj": 1800000,
+      "radiator_hot_pct": 100,
+      "radiator_low_pct": 100,
+      "magazines": { "bb-mag-1": 100, "bb-mag-int": 400 }
+    }
+  ],
+  "events": [
+    {
+      "id": "ev-commission",
+      "ship_id": "ship-ascendant",
+      "date": "Y0.D1",
+      "kind": "note",
+      "note": "Commissioned at full load.",
+      "deltas": {}
+    }
+  ],
+  "system": {
+    "epoch_s": 0,
+    "bodies": [
+      { "id": "sol", "name": "Sol", "mass_kg": 1.9885e30, "radius_m": 6.957e8 },
+      { "id": "mercury", "name": "Mercury", "mass_kg": 3.3011e23, "radius_m": 2.4397e6, "a_m": 5.7909e10, "phase0_deg": 252.3, "parent": "sol" },
+      { "id": "venus", "name": "Venus", "mass_kg": 4.8675e24, "radius_m": 6.0518e6, "a_m": 1.08209e11, "phase0_deg": 182.0, "parent": "sol" },
+      { "id": "earth", "name": "Earth", "mass_kg": 5.97237e24, "radius_m": 6.371e6, "a_m": 1.49598e11, "phase0_deg": 100.5, "parent": "sol" },
+      { "id": "luna", "name": "Luna", "mass_kg": 7.342e22, "radius_m": 1.7374e6, "a_m": 3.844e8, "phase0_deg": 0, "parent": "earth" },
+      { "id": "mars", "name": "Mars", "mass_kg": 6.4171e23, "radius_m": 3.3895e6, "a_m": 2.27939e11, "phase0_deg": 355.5, "parent": "sol" },
+      { "id": "jupiter", "name": "Jupiter", "mass_kg": 1.8982e27, "radius_m": 6.9911e7, "a_m": 7.7857e11, "phase0_deg": 34.4, "parent": "sol" },
+      { "id": "saturn", "name": "Saturn", "mass_kg": 5.6834e26, "radius_m": 5.8232e7, "a_m": 1.43353e12, "phase0_deg": 50.0, "parent": "sol" },
+      { "id": "uranus", "name": "Uranus", "mass_kg": 8.681e25, "radius_m": 2.5362e7, "a_m": 2.87246e12, "phase0_deg": 313.2, "parent": "sol" },
+      { "id": "neptune", "name": "Neptune", "mass_kg": 1.02413e26, "radius_m": 2.4622e7, "a_m": 4.49506e12, "phase0_deg": 304.9, "parent": "sol" }
+    ],
+    "nav": {}
+  }
+}
