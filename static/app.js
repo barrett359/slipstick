@@ -376,7 +376,7 @@ function closeModal() {
 
 const TABS = [
   ["fleet", "Fleet"], ["designer", "Designer"], ["drive", "Drive & Travel"],
-  ["laser", "Laser Lab"], ["missile", "Missile Lab"], ["map", "System Map"],
+  ["laser", "Laser Lab"], ["lidar", "Lidar & PD"], ["missile", "Missile Lab"], ["map", "System Map"],
 ];
 const UI = {
   tab: "fleet",
@@ -393,6 +393,7 @@ const UI = {
   laser: { weapon: null, p_gw: 10, ap: 30, lambda_nm: 200, wall: 0.4, drill: null,
            profiles: null, clickR: null, pulse: 0.5, fly: 1800000, sink: 2300000,
            qlow: 0, deployed: false, graphMode: "damage", dirty: false },
+  lidarPd: null,
   missile: { sel: null, range_mm: 100, vclose_kms: 20, phases: null, result: null,
              optimizer: null, optimizerResult: null },
 };
@@ -417,6 +418,7 @@ function render() {
     case "designer": return renderDesigner(main);
     case "drive": return renderDrive(main);
     case "laser": return renderLaser(main);
+    case "lidar": return renderLidarPd(main);
     case "missile": return renderMissile(main);
     case "map": return renderMap(main);
   }
@@ -2128,6 +2130,565 @@ async function updateLaser() {
         <span class="v ${endurance == null ? "good" : ""}">${endurance == null ? "indefinite" : fmtDur(endurance)}</span>
         <span class="u">low loop ${L.deployed ? "deployed" : "retracted"}</span></div>`;
   });
+}
+
+/* ========================= LIDAR & POINT DEFENSE ======================= */
+
+const LP_MISSING_META = new Set();
+const lpIn = (what, effect, unit, nature = "user assumption") =>
+  `${what} This is an entered ${nature}${unit ? `, displayed in ${unit}` : ""}. ${effect}`;
+const lpOut = (what, effect, unit, nature = "calculated result") =>
+  `${what} This is a ${nature}${unit ? `, displayed in ${unit}` : ""}. ${effect}`;
+
+// Single source of truth for every value rendered by the Lidar & PD page.
+const LP_META = Object.freeze({
+  scenario_preset: lpIn("Loads a complete starting scenario.", "Changing it replaces the current draft but does not affect fleet data.", "named presets", "preset choice"),
+  detector_preset: lpIn("Loads a lidar transmitter and receiver configuration.", "A larger receiver usually collects more target and jammer light.", "named presets", "preset choice"),
+  target_preset: lpIn("Loads target size, reflectivity, and damage assumptions.", "Smaller or darker targets are generally harder to track.", "named presets", "preset choice"),
+  weapon_preset: lpIn("Loads a built-in or installed point-defense laser.", "More power or aperture generally shortens kill time.", "named presets", "preset choice"),
+  geometry_mode: lpIn("Chooses simple range-and-offset labels or full coordinates.", "Both modes edit the same three-dimensional vectors.", "mode", "display choice"),
+  "scenario_name": lpIn("A human-readable name carried into exported scenarios and results.", "It does not change the calculation.", "text"),
+  "detector.wavelength_m": lpIn("The lidar light wavelength.", "Shorter wavelengths make smaller diffraction spots but may change target reflectivity.", "nanometres"),
+  "detector.transmitter_power_w": lpIn("Average optical power sent by the lidar during the sample.", "More power normally produces more returned target photons.", "megawatts"),
+  "detector.transmitter_aperture_m": lpIn("The effective diameter of the lidar transmitter.", "A larger aperture makes a tighter illumination spot.", "metres"),
+  "detector.transmitter_m2": lpIn("How much wider the lidar beam is than an ideal diffraction-limited beam.", "Values above one spread the beam and weaken illumination.", "dimensionless engineering factor"),
+  "detector.receiver_aperture_m": lpIn("The effective diameter of the receiving mirror.", "A larger receiver collects more target and countermeasure light and improves angular resolution.", "metres"),
+  "detector.integration_time_s": lpIn("How long the detector gathers light for this snapshot.", "Longer samples collect more photons but may blur changing geometry.", "milliseconds"),
+  "detector.optical_throughput": lpIn("The fraction of collected light surviving the receiver optics.", "Higher throughput increases every optical signal reaching the detector.", "percent"),
+  "detector.quantum_efficiency": lpIn("The fraction of arriving photons converted into detector counts.", "Higher efficiency increases signal and photon noise together.", "percent"),
+  "detector.filter_center_m": lpIn("The wavelength centered in the receiver filter.", "A jammer far from this wavelength is strongly rejected.", "nanometres"),
+  "detector.filter_fwhm_m": lpIn("The receiver filter's effective spectral width.", "A narrower filter rejects more off-wavelength jammer light.", "picometres"),
+  "detector.gate_width_s": lpIn("How long the direct detector is open for each receive gate.", "Short gates reduce temporal overlap with untimed jammers.", "nanoseconds"),
+  "detector.pulse_repetition_hz": lpIn("How often receive gates occur.", "It documents the sampling cadence used to judge temporal overlap.", "hertz"),
+  "detector.pixel_scale_rad": lpIn("The sky angle represented by one detector pixel.", "Larger pixels admit sources farther from the expected target location.", "nanoradians"),
+  "detector.tracking_window_radius_rad": lpIn("The angular radius kept by centroid processing.", "A larger window retains offset targets but admits more false sources.", "microradians"),
+  "detector.detector_floor_sigma_rad": lpIn("Residual measurement error not caused by photon statistics.", "A larger floor prevents added photons from improving accuracy beyond this limit.", "nanoradians", "engineering assumption"),
+  "detector.background_photons": lpIn("Expected accepted sky and optical background counts.", "More background lowers target signal-to-noise.", "photons per sample"),
+  "detector.dark_counts": lpIn("Detector counts produced without incoming light.", "More dark counts lower signal-to-noise.", "counts per sample"),
+  "detector.read_noise_e": lpIn("Electronic readout noise for the sample.", "More read noise makes weak returns harder to distinguish.", "electron-equivalent RMS"),
+  "detector.full_well_e": lpIn("Maximum detector charge before saturation.", "A larger well tolerates brighter pre-processing jammer light.", "electron-equivalent counts"),
+  "detector.recovery_time_s": lpIn("Assumed time needed after saturation.", "Longer recovery adds more delay to a saturated engagement.", "milliseconds", "engineering assumption"),
+  "detector.track_snr_min": lpIn("Lowest signal-to-noise that retains a track.", "Raising it makes track dropout more likely.", "ratio", "doctrine threshold"),
+  "detector.fire_control_snr_min": lpIn("Lowest signal-to-noise accepted for nominal weapon pointing.", "Raising it makes degraded fire-control status more likely.", "ratio", "doctrine threshold"),
+  "detector.ambiguity_ratio_min": lpIn("False-source strength relative to the target that triggers ambiguity.", "A lower threshold makes deception easier to flag.", "ratio", "doctrine threshold"),
+  "detector.speckle_single_sigma_rad": lpIn("Centroid jitter assumed for one fully correlated speckle view.", "A larger value raises the measurement floor unless diversity averages it down.", "nanoradians", "engineering assumption"),
+  "detector.speckle_temporal_modes": lpIn("Number of genuinely independent time samples.", "More independent samples reduce residual speckle error.", "mode count", "engineering assumption"),
+  "detector.speckle_wavelength_modes": lpIn("Number of independent wavelength samples.", "More wavelength diversity reduces residual speckle error.", "mode count", "engineering assumption"),
+  "detector.speckle_polarization_modes": lpIn("Number of independent polarization views.", "More polarization diversity reduces residual speckle error.", "mode count", "engineering assumption"),
+  "detector.speckle_view_modes": lpIn("Number of independent viewing geometries.", "More viewpoints reduce residual speckle error.", "mode count", "engineering assumption"),
+  "target.position_m": lpIn("Target position relative to the defending sensor.", "Greater range weakens the return and increases causal delay and weapon spot size.", "megametres"),
+  "target.projected_area_m2": lpIn("Target area presented to the lidar.", "A larger area intercepts more illumination.", "square metres", "target assumption"),
+  "target.characteristic_diameter_m": lpIn("Target size used for angular extent and speckle scale.", "A larger apparent target can increase centroid spread.", "metres", "target assumption"),
+  "target.body_radius_m": lpIn("Radius used when asking whether the weapon lands anywhere on the body.", "A larger body is easier to capture.", "metres", "target assumption"),
+  "target.vulnerable_patch_radius_m": lpIn("Radius of the specific damage patch the laser must reach.", "A smaller patch makes an effective kill less likely.", "metres", "target assumption"),
+  "target.uv_reflectivity": lpIn("Effective diffuse reflectivity at the lidar wavelength.", "A darker target returns fewer photons.", "percent", "target assumption"),
+  "target.aspect_factor": lpIn("How target orientation changes presented area and return.", "A lower value represents an unfavorable aspect and weaker return.", "fraction", "target assumption"),
+  "target.closure_velocity_m_s": lpIn("Positive speed at which range is shrinking.", "Faster closure leaves less time before warhead standoff.", "kilometres per second"),
+  "target.warhead_standoff_m": lpIn("Range by which point defense should have produced the effect.", "A larger standoff leaves less engagement time.", "kilometres", "engagement assumption"),
+  "target.soft_kill_fluence_j_m2": lpIn("Energy per area needed to disable a vulnerable sensor or subsystem.", "A higher requirement lengthens soft-kill dwell time.", "joules per square metre", "damage assumption"),
+  "target.structural_kill_fluence_j_m2": lpIn("Energy per area needed for structural defeat.", "A higher requirement lengthens structural kill time.", "joules per square metre", "damage assumption"),
+  "fire_control.processing_latency_s": lpIn("Delay in processing and beam control beyond light travel.", "More latency gives target motion longer to spoil the aim point.", "milliseconds"),
+  "fire_control.position_sigma_m": lpIn("Current one-axis position uncertainty before this lidar update.", "More uncertainty increases the future aim bubble.", "metres", "track assumption"),
+  "fire_control.velocity_sigma_m_s": lpIn("Residual one-axis velocity uncertainty.", "More velocity uncertainty grows into position error during delay.", "metres per second", "track assumption"),
+  "fire_control.acceleration_sigma_m_s2": lpIn("Unpredictable target acceleration left after filtering.", "More maneuver uncertainty expands the future aim bubble.", "metres per second squared", "maneuver assumption"),
+  "fire_control.maneuver_persistence_s": lpIn("How long one unpredictable acceleration command tends to persist.", "It selects the resolved or unresolved maneuver approximation.", "milliseconds", "maneuver assumption"),
+  "fire_control.boresight_sigma_rad": lpIn("Random alignment error between sensor and weapon.", "More misalignment increases miss distance.", "nanoradians", "alignment assumption"),
+  "fire_control.platform_sigma_rad": lpIn("Random pointing motion of the defending platform.", "More platform jitter increases miss distance.", "nanoradians", "platform assumption"),
+  "fire_control.beam_sigma_rad": lpIn("Random outgoing beam-placement error.", "More beam error reduces capture probability.", "nanoradians", "weapon assumption"),
+  "fire_control.reacquisition_time_s": lpIn("Extra delay after drop, deception, or saturation.", "Longer reacquisition directly increases effective kill time.", "milliseconds", "doctrine assumption"),
+  "fire_control.minimum_capture_probability": lpIn("Minimum body-hit probability accepted as usable fire control.", "Raising it makes degraded status more likely.", "percent", "doctrine threshold"),
+  "weapon.wavelength_m": lpIn("Point-defense laser wavelength.", "Shorter wavelengths create smaller diffraction spots at the same aperture.", "nanometres"),
+  "weapon.aperture_m": lpIn("Effective diameter of the firing aperture.", "A larger aperture tightens the weapon spot and raises flux.", "metres"),
+  "weapon.m2": lpIn("How much wider the weapon beam is than an ideal beam.", "Values above one enlarge the spot and increase dwell time.", "dimensionless engineering factor"),
+  "weapon.listed_optical_power_w": lpIn("Total optical output before the central-lobe fraction.", "More power raises target-plane flux.", "megawatts"),
+  "weapon.central_lobe_fraction": lpIn("Fraction of weapon power in the useful central spot.", "A higher fraction increases useful flux.", "percent", "optical assumption"),
+  "weapon.duty_cycle": lpIn("Fraction of time the weapon can deliver its listed power.", "A lower duty cycle lengthens average dwell time.", "percent", "operating assumption"),
+  "weapon.slew_time_s": lpIn("Delay to place the weapon on this target.", "More slew time consumes the engagement window.", "milliseconds", "service assumption"),
+  "jammers[].id": lpIn("Stable label for this jammer.", "It changes only identification in audit output.", "text"),
+  "jammers[].enabled": lpIn("Whether this jammer contributes to the calculation.", "Disabled entries remain visible but contribute zero light.", "on or off"),
+  "jammers[].mode": lpIn("Noise adds variance; false source can also pull the measured center of light.", "False-source mode can create systematic aim bias.", "mode", "model choice"),
+  "jammers[].position_m": lpIn("Jammer position relative to the defending receiver.", "Angular separation from the target controls how much enters the tracking cell.", "megametres"),
+  "jammers[].optical_power_w": lpIn("Total optical jammer output.", "More power can saturate the detector or lower signal-to-noise.", "watts"),
+  "jammers[].aperture_m": lpIn("Jammer transmit aperture diameter.", "A larger aperture delivers a tighter, brighter beam to the defender.", "metres"),
+  "jammers[].m2": lpIn("Jammer beam quality relative to ideal diffraction.", "Higher values spread the jammer beam and reduce delivered brightness.", "dimensionless engineering factor"),
+  "jammers[].wavelength_m": lpIn("Center wavelength of jammer light.", "Mismatch with the receiver filter reduces accepted light.", "nanometres"),
+  "jammers[].spectral_fwhm_m": lpIn("Spectral width of jammer light.", "A broader line may overlap more of the receiver filter but spreads power spectrally.", "picometres"),
+  "jammers[].pointing_error_rad": lpIn("Jammer aiming error relative to the defender.", "More error reduces delivered jammer power.", "nanoradians"),
+  "jammers[].polarization_overlap": lpIn("Fraction matching the receiver polarization path.", "Lower overlap rejects more jammer light.", "percent"),
+  "jammers[].temporal_overlap": lpIn("Fraction arriving while the detector is open.", "Lower overlap reduces pre-processing contamination.", "percent"),
+  "jammers[].code_correlation": lpIn("Fraction surviving coded or coherent processing.", "Lower correlation reduces post-processing noise but cannot undo saturation.", "percent"),
+  "jammers[].range_response": lpIn("Fraction surviving range or Doppler filtering.", "Lower response reduces post-processing contamination.", "percent"),
+  "jammers[].central_lobe_fraction": lpIn("Fraction of jammer power in its modeled central beam.", "A higher fraction delivers more useful jammer light.", "percent", "optical assumption"),
+  "chaff[].id": lpIn("Stable label for this cloud.", "It changes only identification in audit output.", "text"),
+  "chaff[].enabled": lpIn("Whether this cloud contributes to the calculation.", "Disabled clouds remain visible but contribute zero.", "on or off"),
+  "chaff[].position_m": lpIn("Cloud center relative to the defending receiver.", "Its offset decides whether the lidar beam crosses it.", "megametres"),
+  "chaff[].width_m": lpIn("Initial transverse cloud width.", "A wider cloud overlaps more of the beam.", "metres", "cloud assumption"),
+  "chaff[].height_m": lpIn("Initial transverse cloud height.", "A taller cloud overlaps more of the beam.", "metres", "cloud assumption"),
+  "chaff[].depth_m": lpIn("Initial line-of-sight cloud depth.", "It is reported as the cloud expands; optical depth controls extinction directly.", "metres", "cloud assumption"),
+  "chaff[].age_s": lpIn("Time since the cloud was deployed.", "Older clouds are larger and have lower conserved optical depth.", "seconds"),
+  "chaff[].expansion_speed_m_s": lpIn("Symmetric expansion speed on each cloud dimension.", "Faster expansion spreads the cloud and lowers optical depth.", "metres per second", "cloud assumption"),
+  "chaff[].optical_depth": lpIn("Initial strength of extinction through the cloud.", "Higher optical depth blocks more target return and produces more scatter.", "dimensionless", "cloud assumption"),
+  "chaff[].single_scatter_albedo": lpIn("Fraction of removed light scattered instead of absorbed.", "Higher albedo creates more structured chaff return.", "percent", "scattering assumption"),
+  "chaff[].backscatter_fraction": lpIn("Fraction of scattered light assigned to the receiver-facing approximation.", "Higher values make the cloud brighter to the lidar.", "percent", "engineering approximation"),
+  "chaff[].range_response": lpIn("Fraction of chaff return surviving range processing.", "Lower response reduces structured contamination.", "percent"),
+  "chaff[].clearance_fluence_j_m2": lpIn("Energy per area assumed necessary to clear the cloud.", "A higher requirement increases burn-through time.", "joules per square metre", "engineering assumption"),
+
+  "summary.detector_state": lpOut("Overall detector and track condition after applying state precedence.", "Saturated, dropped, or ambiguous states add reacquisition delay.", "status"),
+  "summary.fire_control_usable": lpOut("Whether SNR and capture meet the configured firing thresholds.", "False means the track is retained only as degraded or has failed.", "yes or no"),
+  "summary.target_photons": lpOut("Expected detected target photons after chaff attenuation.", "More target photons normally improve SNR and centroid accuracy.", "photons"),
+  "summary.jammer_to_signal": lpOut("Accepted post-processing jammer photons divided by target photons.", "Higher values generally worsen measurement quality.", "ratio"),
+  "summary.snr": lpOut("Target signal compared with combined photon and read noise.", "Higher values make tracking and fire control more reliable.", "ratio"),
+  "summary.measurement_r95_m": lpOut("Radius containing 95% of random current measurement error.", "A smaller bubble gives a more precise present target location.", "metres"),
+  "summary.centroid_bias_m": lpOut("Systematic aim offset caused by structured false light.", "Unlike random error, this shifts the center of the solution.", "metres", "calculated engineering approximation"),
+  "summary.future_aim_r95_m": lpOut("Bias-inclusive 95% aim radius after causal delay.", "A larger future bubble lowers body and patch capture.", "metres", "calculated engineering approximation"),
+  "summary.body_capture_probability": lpOut("Chance the beam lands somewhere on the target body.", "Higher is better for acquiring any target surface.", "percent", "calculated Gaussian approximation"),
+  "summary.patch_capture_probability": lpOut("Conditional chance of reaching the vulnerable patch once the body is captured.", "Higher is better for producing the intended damage.", "percent", "calculated Gaussian approximation"),
+  "summary.structural_kill_time_s": lpOut("Structural dwell time after capture losses and reacquisition delay.", "Shorter time improves snapshot feasibility.", "seconds", "calculated snapshot estimate"),
+  "summary.time_to_standoff_s": lpOut("Time until the closing target reaches warhead standoff.", "More time provides a larger engagement window.", "seconds", "calculated constant-speed estimate"),
+  "summary.structural_kill_feasible": lpOut("Whether effective structural dwell plus slew fits before standoff.", "This is a snapshot verdict, not a time-stepped engagement simulation.", "yes or no", "calculated snapshot estimate"),
+});
+
+// Detailed output explanations reuse summary wording where the concepts match.
+const LP_DETAIL_META = Object.freeze({
+  "geometry.target_range_m": lpOut("Straight-line range from defender to target.", "Longer range weakens lidar return and weapon flux.", "metres"),
+  "geometry.target_line_of_sight": lpOut("Normalized direction from defender to target.", "It defines the tangent plane used for angular offsets.", "unit vector"),
+  "geometry.receiver_area_m2": lpOut("Collecting area of the receiver aperture.", "More area gathers more optical power.", "square metres"),
+  "geometry.receiver_diffraction_rad": lpOut("Ideal angular scale set by wavelength and receiver aperture.", "A smaller scale supports finer centroiding.", "radians"),
+  "geometry.angular_acceptance_rad": lpOut("Combined angular region admitted by diffraction, pixels, and tracking window.", "A wider region admits more offset jammer light.", "radians", "calculated engineering approximation"),
+  "signal.lidar_spot_diameter_m": lpOut("Effective central lidar spot diameter at the target.", "A smaller spot concentrates illumination.", "metres"),
+  "signal.lidar_spot_area_m2": lpOut("Area of the effective lidar spot.", "A larger area dilutes transmitter power.", "square metres"),
+  "signal.target_effective_area_m2": lpOut("Projected target area after aspect adjustment.", "A larger value intercepts more lidar power.", "square metres"),
+  "signal.intercepted_power_w": lpOut("Transmitter power intercepted by the target.", "More intercepted power produces a brighter return.", "watts"),
+  "signal.target_received_power_clean_w": lpOut("Target return reaching the receiver before chaff.", "This is the clean reference for countermeasure comparisons.", "watts"),
+  "signal.target_received_power_actual_w": lpOut("Target return reaching the receiver after chaff.", "Lower power means fewer detected target photons.", "watts"),
+  "signal.photon_energy_j": lpOut("Energy carried by one lidar photon.", "It converts received optical energy into expected photon count.", "joules"),
+  "signal.target_photons_clean": lpOut("Expected target photons without chaff attenuation.", "This is the clean photon reference.", "photons"),
+  "signal.target_photons_actual": LP_META["summary.target_photons"],
+  "signal.target_transmittance": lpOut("Fraction of target return left after all enabled chaff clouds.", "Lower values mean stronger obscuration.", "fraction", "calculated cloud approximation"),
+  "detector.state": LP_META["summary.detector_state"],
+  "detector.primary_cause": lpOut("First condition responsible for the detector state.", "It identifies the dominant immediate limitation.", "text"),
+  "detector.causes": lpOut("All thresholds contributing to the current state.", "Multiple causes can be active at once.", "list"),
+  "detector.total_pre_processing_counts": lpOut("All detector counts before code and range rejection.", "This value controls physical saturation.", "counts"),
+  "detector.full_well_utilization": lpOut("Pre-processing counts divided by detector capacity.", "Values above one are saturated.", "ratio"),
+});
+
+// Object.freeze above prevents accidental mutation; build the complete lookup by spread.
+const LP_ALL_META = Object.freeze({ ...LP_META, ...LP_DETAIL_META,
+  "detector.target_photons_clean": LP_DETAIL_META["signal.target_photons_clean"],
+  "detector.target_photons_actual": LP_META["summary.target_photons"],
+  "detector.background_photons": lpOut("Accepted background and dark counts.", "More background lowers SNR.", "counts"),
+  "detector.noise_jammer_photons": lpOut("Post-processing photons from noise-mode jammers.", "More noise jammer light lowers SNR without directly shifting the centroid.", "photons"),
+  "detector.structured_photons": lpOut("Accepted chaff and false-source photons.", "These photons add noise and can shift the measured center.", "photons"),
+  "detector.read_noise_variance": lpOut("Read-noise contribution after squaring RMS noise.", "More variance lowers SNR.", "counts squared"),
+  "detector.snr": LP_META["summary.snr"],
+  "detector.photon_centroid_sigma_clean_rad": lpOut("Centroid error from clean target photon statistics.", "Smaller values mean more precise angular measurement.", "radians"),
+  "detector.photon_centroid_sigma_actual_rad": lpOut("Photon-statistical centroid error with countermeasure and background noise.", "More accepted contaminating light increases it.", "radians"),
+  "detector.speckle_angular_scale_rad": lpOut("Angular scale of coherent target speckle.", "It sets the raw correlation size before diversity averaging.", "radians", "calculated approximation"),
+  "detector.speckle_cell_m": lpOut("Speckle correlation scale projected at the receiver plane.", "A smaller cell allows more spatial diversity across the aperture.", "metres", "calculated approximation"),
+  "detector.speckle_spatial_modes": lpOut("Estimated independent speckle cells across the receiver.", "More cells reduce residual speckle error.", "mode count", "calculated approximation"),
+  "detector.speckle_total_modes": lpOut("Combined spatial, time, wavelength, polarization, and view diversity.", "More independent modes reduce speckle error.", "mode count", "calculated approximation"),
+  "detector.speckle_residual_sigma_rad": lpOut("Speckle centroid error remaining after diversity.", "A larger residual expands the measurement bubble.", "radians", "calculated approximation"),
+  "detector.measurement_sigma_rad": lpOut("Combined one-axis photon, speckle, and detector-floor error.", "It feeds the current and future aim bubbles.", "radians"),
+  "detector.centroid_bias_vector_rad": lpOut("Two-dimensional angular shift from structured false light.", "Its direction identifies where the measured center is pulled.", "radians", "calculated approximation"),
+  "detector.centroid_bias_magnitude_rad": lpOut("Magnitude of structured angular bias.", "A larger bias moves the aim point farther from the target center.", "radians", "calculated approximation"),
+  "detector.random_r50_m": lpOut("Radius containing 50% of random measurement error.", "Smaller is more precise.", "metres"),
+  "detector.random_r90_m": lpOut("Radius containing 90% of random measurement error.", "Smaller is more precise.", "metres"),
+  "detector.random_r95_m": LP_META["summary.measurement_r95_m"],
+  "detector.bias_inclusive_r95_m": lpOut("Random 95% radius plus structured bias distance.", "It is a conservative current-location bubble.", "metres", "calculated approximation"),
+  "detector.projected_recovery_time_s": lpOut("Configured recovery delay reported when currently saturated.", "V1 reports it but does not simulate the later recovering state.", "seconds", "projected assumption"),
+  "fire_control.causal_delay_s": lpOut("Round-trip light time plus processing latency.", "Longer delay gives motion uncertainty more time to grow.", "seconds"),
+  "fire_control.maneuver_regime": lpOut("Whether maneuver persistence is resolved or unresolved over the delay.", "It selects the corresponding uncertainty approximation.", "state", "calculated model choice"),
+  "fire_control.position_contribution_m": lpOut("Present position uncertainty carried into the future solution.", "More uncertainty enlarges the aim bubble.", "metres"),
+  "fire_control.velocity_contribution_m": lpOut("Velocity uncertainty grown over causal delay.", "More delay or velocity error enlarges it.", "metres"),
+  "fire_control.maneuver_contribution_m": lpOut("Position uncertainty from unpredictable acceleration.", "More maneuver severity enlarges the aim bubble.", "metres", "calculated approximation"),
+  "fire_control.measurement_contribution_m": lpOut("Angular measurement uncertainty converted to target-plane distance.", "It grows linearly with range.", "metres"),
+  "fire_control.boresight_contribution_m": lpOut("Sensor-to-weapon alignment uncertainty at target range.", "More alignment error enlarges the aim bubble.", "metres"),
+  "fire_control.platform_contribution_m": lpOut("Platform pointing uncertainty at target range.", "More jitter enlarges the aim bubble.", "metres"),
+  "fire_control.beam_contribution_m": lpOut("Outgoing beam-placement uncertainty at target range.", "More beam error enlarges the aim bubble.", "metres"),
+  "fire_control.random_aim_sigma_m": lpOut("Root-sum-square random future aim error.", "Smaller values improve capture probability.", "metres"),
+  "fire_control.systematic_bias_m": LP_META["summary.centroid_bias_m"],
+  "fire_control.equivalent_aim_sigma_m": lpOut("Random error plus bias folded into an equivalent circular error.", "This scalar drives the simplified capture model.", "metres", "calculated approximation"),
+  "fire_control.future_r95_m": LP_META["summary.future_aim_r95_m"],
+  "fire_control.body_capture_probability": LP_META["summary.body_capture_probability"],
+  "fire_control.patch_capture_probability": LP_META["summary.patch_capture_probability"],
+  "fire_control.fire_control_usable": LP_META["summary.fire_control_usable"],
+  "point_defense.weapon_spot_diameter_m": lpOut("Effective weapon central-spot diameter at current range.", "A smaller spot produces higher flux.", "metres"),
+  "point_defense.useful_central_lobe_power_w": lpOut("Weapon power assigned to the useful central spot.", "More useful power shortens clean dwell time.", "watts"),
+  "point_defense.average_flux_w_m2": lpOut("Duty-averaged useful power per target area.", "Higher flux shortens clean kill time.", "watts per square metre"),
+  "point_defense.clean_soft_kill_time_s": lpOut("Dwell required for soft kill with perfect placement.", "It excludes capture losses and reacquisition.", "seconds", "calculated snapshot estimate"),
+  "point_defense.clean_structural_kill_time_s": lpOut("Dwell required for structural kill with perfect placement.", "It excludes capture losses and reacquisition.", "seconds", "calculated snapshot estimate"),
+  "point_defense.body_capture_factor": LP_META["summary.body_capture_probability"],
+  "point_defense.patch_capture_factor": LP_META["summary.patch_capture_probability"],
+  "point_defense.applied_reacquisition_delay_s": lpOut("Delay added because the detector is saturated, dropped, or ambiguous.", "Tracked and degraded states add no reacquisition delay.", "seconds"),
+  "point_defense.effective_soft_kill_time_s": lpOut("Soft-kill dwell after capture losses and reacquisition.", "Shorter time improves feasibility.", "seconds", "calculated snapshot estimate"),
+  "point_defense.effective_structural_kill_time_s": LP_META["summary.structural_kill_time_s"],
+  "point_defense.time_to_standoff_s": LP_META["summary.time_to_standoff_s"],
+  "point_defense.soft_kill_feasible": lpOut("Whether effective soft-kill time plus slew fits before standoff.", "It is a constant-range snapshot verdict.", "yes or no", "calculated snapshot estimate"),
+  "point_defense.structural_kill_feasible": LP_META["summary.structural_kill_feasible"],
+  "point_defense.model_limitation": lpOut("Plain statement of what the point-defense result does not simulate.", "Use it when interpreting the snapshot verdict.", "text"),
+  "jammers[].id": LP_META["jammers[].id"], "jammers[].enabled": LP_META["jammers[].enabled"],
+  "jammers[].mode": LP_META["jammers[].mode"],
+  "jammers[].source_range_m": lpOut("Range from jammer to defender.", "It controls jammer footprint at the receiver.", "metres"),
+  "jammers[].angular_separation_rad": lpOut("Angle between jammer and target as seen by the defender.", "Larger separation reduces tracking-cell overlap.", "radians"),
+  "jammers[].tangent_offset_rad": lpOut("Two-axis jammer offset in the target tangent plane.", "False sources use this direction to pull the centroid.", "radians"),
+  "jammers[].divergence_rad": lpOut("Effective angular spread of the jammer beam.", "More divergence spreads power over a wider footprint.", "radians"),
+  "jammers[].footprint_diameter_m": lpOut("Jammer central-lobe diameter at the defender.", "A larger footprint dilutes received power.", "metres"),
+  "jammers[].pointing_weight": lpOut("Fraction left after jammer pointing error.", "One is perfect pointing; lower values deliver less light.", "fraction", "Gaussian approximation"),
+  "jammers[].angular_overlap_weight": lpOut("Fraction admitted because of angular collinearity.", "One is aligned with the target; lower values mean stronger rejection.", "fraction", "Gaussian approximation"),
+  "jammers[].spectral_overlap_weight": lpOut("Fraction admitted by spectral overlap.", "One is a close filter match; lower values mean stronger rejection.", "fraction", "Gaussian approximation"),
+  "jammers[].polarization_overlap": LP_META["jammers[].polarization_overlap"],
+  "jammers[].temporal_overlap": LP_META["jammers[].temporal_overlap"],
+  "jammers[].code_correlation": LP_META["jammers[].code_correlation"],
+  "jammers[].range_response": LP_META["jammers[].range_response"],
+  "jammers[].pre_processing_photons": lpOut("Jammer photons reaching the detector before digital rejection.", "These counts can saturate the detector.", "photons"),
+  "jammers[].post_processing_photons": lpOut("Jammer photons left after code and range rejection.", "These counts affect SNR and structured bias.", "photons"),
+  "jammers[].jammer_to_signal": lpOut("This jammer's accepted photons divided by target photons.", "Higher values mean stronger contamination.", "ratio"),
+  "jammers[].inside_target_cell": lpOut("Whether angular separation falls inside the configured acceptance radius.", "Outside sources may still have a small Gaussian overlap.", "yes or no"),
+  "jammers[].warnings": lpOut("Plain-English cautions specific to this jammer.", "They identify rejection or modeling conditions worth reviewing.", "list"),
+  "chaff[].id": LP_META["chaff[].id"], "chaff[].enabled": LP_META["chaff[].enabled"],
+  "chaff[].current_dimensions_m": lpOut("Cloud width, height, and depth after expansion.", "Larger dimensions spread the original optical depth over more area.", "metres", "calculated cloud approximation"),
+  "chaff[].current_optical_depth": lpOut("Extinction strength after expansion.", "Higher depth blocks and scatters more lidar light.", "dimensionless", "calculated cloud approximation"),
+  "chaff[].cloud_range_m": lpOut("Range from defender to cloud center.", "It sets lidar and weapon spot size at the cloud.", "metres"),
+  "chaff[].angular_offset_rad": lpOut("Cloud-center angle from the target line of sight.", "Larger offsets reduce beam overlap.", "radians"),
+  "chaff[].tangent_offset_rad": lpOut("Two-axis cloud offset in the target tangent plane.", "It sets the direction of structured centroid pull.", "radians"),
+  "chaff[].lidar_beam_overlap": lpOut("Fraction of the lidar spot covered by the rectangular cloud.", "More overlap strengthens attenuation and chaff return.", "fraction", "fixed-grid approximation"),
+  "chaff[].target_transmittance": lpOut("Fraction of target return surviving this cloud.", "Lower values mean stronger obscuration.", "fraction", "calculated cloud approximation"),
+  "chaff[].accepted_chaff_photons": lpOut("Chaff-scattered photons accepted by the receiver.", "More photons add structured noise and centroid bias.", "photons", "calculated scattering approximation"),
+  "chaff[].centroid_offset_rad": lpOut("Angular location assigned to this cloud's structured return.", "It determines the direction of centroid bias.", "radians", "calculated approximation"),
+  "chaff[].lidar_clearance_time_s": lpOut("Estimated lidar illumination time needed to clear the cloud.", "Longer time means the lidar is less useful for burn-through.", "seconds", "engineering approximation"),
+  "chaff[].weapon_clearance_time_s": lpOut("Estimated weapon illumination time needed to clear the cloud.", "Longer time consumes more of the engagement window.", "seconds", "engineering approximation"),
+  "chaff[].warnings": lpOut("Plain-English cautions specific to this cloud.", "They identify geometry or modeling conditions worth reviewing.", "list"),
+});
+
+function lpPathKey(path) {
+  return path.replace(/\[\d+\]/g, "[]");
+}
+function lpMeta(path) {
+  const key = lpPathKey(path);
+  const value = LP_ALL_META[key] || LP_ALL_META[key.replace(/\[\]$/, "")];
+  if (!value) {
+    LP_MISSING_META.add(key);
+    console.error("Missing Lidar & PD tooltip metadata:", key);
+    return "This value is missing its required plain-English explanation. Please report this coverage defect.";
+  }
+  return value;
+}
+function lpTip(path) {
+  const id = "lp-tip-" + path.replace(/[^a-z0-9]+/gi, "-");
+  return `<span class="lp-help-wrap"><button type="button" class="lp-help" data-lp-help
+    aria-label="Explain ${esc(path)}" aria-expanded="false" aria-describedby="${id}">?</button>
+    <span class="lp-tooltip" role="tooltip" id="${id}">${esc(lpMeta(path))}</span></span>`;
+}
+function lpTokens(path) { return path.replace(/\[(\d+)\]/g, ".$1").split("."); }
+function lpGet(root, path) { return lpTokens(path).reduce((v, k) => v?.[k], root); }
+function lpSet(root, path, value) {
+  const keys = lpTokens(path); let at = root;
+  keys.slice(0, -1).forEach(k => { at = at[k]; });
+  at[keys[keys.length - 1]] = value;
+}
+const lpClone = value => JSON.parse(JSON.stringify(value));
+
+function lpDefaultScenario() {
+  return {
+    schema_version: "1.0", scenario_name: "10,000 km aligned jammer stress case",
+    detector: { wavelength_m: 266e-9, transmitter_power_w: 1e6, transmitter_aperture_m: 1,
+      transmitter_m2: 1, receiver_aperture_m: 1, integration_time_s: .001,
+      optical_throughput: .526, quantum_efficiency: .95, filter_center_m: 266e-9,
+      filter_fwhm_m: 1e-11, gate_width_s: 7e-9, pulse_repetition_hz: 10000,
+      pixel_scale_rad: 5e-8, tracking_window_radius_rad: 1e-6,
+      detector_floor_sigma_rad: 1e-9, background_photons: 10, dark_counts: .1,
+      read_noise_e: 1, full_well_e: 1e8, recovery_time_s: .002,
+      track_snr_min: 5, fire_control_snr_min: 20, ambiguity_ratio_min: 1,
+      speckle_single_sigma_rad: 1e-9, speckle_temporal_modes: 1,
+      speckle_wavelength_modes: 1, speckle_polarization_modes: 1, speckle_view_modes: 1 },
+    target: { position_m: [1e7, 0, 0], projected_area_m2: 1, characteristic_diameter_m: 1,
+      body_radius_m: .5, vulnerable_patch_radius_m: .05, uv_reflectivity: .1,
+      aspect_factor: 1, closure_velocity_m_s: 130000, warhead_standoff_m: 300000,
+      soft_kill_fluence_j_m2: 1e8, structural_kill_fluence_j_m2: 1e9 },
+    fire_control: { processing_latency_s: .001, position_sigma_m: .01, velocity_sigma_m_s: .1,
+      acceleration_sigma_m_s2: 100, maneuver_persistence_s: .02, boresight_sigma_rad: 4e-9,
+      platform_sigma_rad: 4e-9, beam_sigma_rad: 3e-9, reacquisition_time_s: .05,
+      minimum_capture_probability: .5 },
+    weapon: { wavelength_m: 532e-9, aperture_m: 30, m2: 1,
+      listed_optical_power_w: 1e9, central_lobe_fraction: .84, duty_cycle: .5, slew_time_s: .05 },
+    jammers: [{ id: "J-1", enabled: true, mode: "noise", position_m: [1.2e7, 0, 0],
+      optical_power_w: 100, aperture_m: .1, m2: 1, wavelength_m: 266e-9,
+      spectral_fwhm_m: 5e-12, pointing_error_rad: 0, polarization_overlap: 1,
+      temporal_overlap: 7e-5, code_correlation: .01, range_response: 1,
+      central_lobe_fraction: .84 }],
+    chaff: [], options: { include_disabled_entries: true, return_intermediates: true },
+  };
+}
+
+function lpNewJammer(n) { return { id: "J-" + n, enabled: true, mode: "noise",
+  position_m: [1.2e7, 0, 0], optical_power_w: 100, aperture_m: .1, m2: 1,
+  wavelength_m: 266e-9, spectral_fwhm_m: 5e-12, pointing_error_rad: 0,
+  polarization_overlap: 1, temporal_overlap: 7e-5, code_correlation: .01,
+  range_response: 1, central_lobe_fraction: .84 }; }
+function lpNewChaff(n) { return { id: "C-" + n, enabled: true, position_m: [9.9e6, 0, 0],
+  width_m: 100, height_m: 100, depth_m: 100, age_s: 1, expansion_speed_m_s: 10,
+  optical_depth: 1, single_scatter_albedo: .8, backscatter_fraction: .1,
+  range_response: 1, clearance_fluence_j_m2: 1e7 }; }
+
+const LP_DETECTORS = {
+  dedicated: { label: "Dedicated 1 m lidar", values: { transmitter_aperture_m: 1, receiver_aperture_m: 1 } },
+  segment: { label: "Stolen 1.65 m mirror segment", values: { transmitter_aperture_m: 1, receiver_aperture_m: 1.65 } },
+  full: { label: "Full 30 m off-phase receiver", values: { transmitter_aperture_m: 1, receiver_aperture_m: 30 } },
+};
+const LP_TARGETS = {
+  diffuse: { label: "1 m² diffuse missile", values: { projected_area_m2: 1, characteristic_diameter_m: 1,
+    body_radius_m: .5, vulnerable_patch_radius_m: .05, uv_reflectivity: .1 } },
+  dark: { label: "Dark rough missile", values: { projected_area_m2: 1, characteristic_diameter_m: 1,
+    body_radius_m: .5, vulnerable_patch_radius_m: .05, uv_reflectivity: .04 }, speckle: 5e-9 },
+  torplet: { label: "Torplet", values: { projected_area_m2: .25, characteristic_diameter_m: .5,
+    body_radius_m: .25, vulnerable_patch_radius_m: .02, uv_reflectivity: .08 } },
+};
+const LP_WEAPONS = {
+  bb_main: ["BB main full array", 30, 1e9], bb_task: ["BB main task group", 9.5, 1e8],
+  bb_secondary: ["BB secondary", 10, 2e8], corvette: ["Corvette spinal", 15, 5e8],
+  pdl: ["Standard PDL", 3, 1.5e8], drone: ["Drone PDL", 1, 4e7],
+};
+
+function lpState() {
+  if (!UI.lidarPd) UI.lidarPd = { scenario: lpDefaultScenario(), result: null, stale: false,
+    error: null, geometryMode: "simple", scenarioPreset: "stress", detectorPreset: "dedicated",
+    targetPreset: "diffuse", weaponPreset: "bb_main" };
+  return UI.lidarPd;
+}
+function lpField(path, label, scale = 1, unit = "", type = "number") {
+  const s = lpState().scenario, value = lpGet(s, path), id = "lp-" + path.replace(/[^a-z0-9]+/gi, "-");
+  const described = "lp-tip-" + path.replace(/[^a-z0-9]+/gi, "-");
+  return `<label class="lp-field" for="${id}"><span>${esc(label)} ${lpTip(path)}</span>
+    <span class="lp-control"><input id="${id}" type="${type}" step="any" data-lp-path="${path}"
+      data-lp-scale="${scale}" aria-describedby="${described}" value="${esc(type === "number" ? value * scale : value)}">
+      ${unit ? `<small>${esc(unit)}</small>` : ""}</span></label>`;
+}
+function lpCheck(path, label) {
+  const value = lpGet(lpState().scenario, path), id = "lp-" + path.replace(/[^a-z0-9]+/gi, "-");
+  return `<label class="lp-check" for="${id}"><input id="${id}" type="checkbox" data-lp-path="${path}"
+    ${value ? "checked" : ""}> <span>${esc(label)} ${lpTip(path)}</span></label>`;
+}
+function lpSelect(path, label, options) {
+  const value = lpGet(lpState().scenario, path), id = "lp-" + path.replace(/[^a-z0-9]+/gi, "-");
+  return `<label class="lp-field" for="${id}"><span>${esc(label)} ${lpTip(path)}</span><select id="${id}"
+    data-lp-path="${path}">${options.map(([v,l]) => `<option value="${esc(v)}" ${v === value ? "selected" : ""}>${esc(l)}</option>`).join("")}</select></label>`;
+}
+function lpSection(title, body, open = false) {
+  return `<details class="panel lp-section" ${open ? "open" : ""}><summary><h2>${esc(title)}</h2></summary><div class="lp-fields">${body}</div></details>`;
+}
+function lpJammerCard(j, n) {
+  const p = `jammers[${n}]`;
+  return `<div class="lp-card"><div class="lp-card-head"><b>${esc(j.id || `Jammer ${n+1}`)}</b><span class="spacer"></span>
+    <button class="small" data-lp-jup="${n}" ${n===0?"disabled":""}>↑</button><button class="small" data-lp-jdown="${n}" ${n===lpState().scenario.jammers.length-1?"disabled":""}>↓</button>
+    <button class="small" data-lp-jcopy="${n}">duplicate</button><button class="small danger" data-lp-jdel="${n}">✕</button></div>
+    <div class="lp-fields">${lpField(p+".id", "ID", 1, "", "text")}${lpCheck(p+".enabled", "Enabled")}
+    ${lpSelect(p+".mode", "Mode", [["noise","noise"],["false_source","false source"]])}
+    ${[0,1,2].map((_,k) => lpField(`${p}.position_m[${k}]`, (lpState().geometryMode === "simple" ? ["Range","Lateral Y","Lateral Z"] : ["X","Y","Z"])[k], 1e-6, "Mm")).join("")}
+    ${lpField(p+".optical_power_w", "Optical power",1,"W")}${lpField(p+".aperture_m","Aperture",1,"m")}
+    ${lpField(p+".m2","M²")}${lpField(p+".wavelength_m","Wavelength",1e9,"nm")}
+    ${lpField(p+".spectral_fwhm_m","Spectral width",1e12,"pm")}${lpField(p+".pointing_error_rad","Pointing error",1e9,"nrad")}
+    ${lpField(p+".polarization_overlap","Polarization",100,"%")}${lpField(p+".temporal_overlap","Temporal overlap",100,"%")}
+    ${lpField(p+".code_correlation","Code correlation",100,"%")}${lpField(p+".range_response","Range response",100,"%")}
+    ${lpField(p+".central_lobe_fraction","Central lobe",100,"%")}</div></div>`;
+}
+function lpChaffCard(c, n) {
+  const p = `chaff[${n}]`;
+  return `<div class="lp-card"><div class="lp-card-head"><b>${esc(c.id || `Chaff ${n+1}`)}</b><span class="spacer"></span>
+    <button class="small" data-lp-cup="${n}" ${n===0?"disabled":""}>↑</button><button class="small" data-lp-cdown="${n}" ${n===lpState().scenario.chaff.length-1?"disabled":""}>↓</button>
+    <button class="small" data-lp-ccopy="${n}">duplicate</button><button class="small danger" data-lp-cdel="${n}">✕</button></div>
+    <div class="lp-fields">${lpField(p+".id","ID",1,"","text")}${lpCheck(p+".enabled","Enabled")}
+    ${[0,1,2].map((_,k) => lpField(`${p}.position_m[${k}]`, (lpState().geometryMode === "simple" ? ["Range","Lateral Y","Lateral Z"] : ["X","Y","Z"])[k], 1e-6, "Mm")).join("")}
+    ${lpField(p+".width_m","Initial width",1,"m")}${lpField(p+".height_m","Initial height",1,"m")}
+    ${lpField(p+".depth_m","Initial depth",1,"m")}${lpField(p+".age_s","Age",1,"s")}
+    ${lpField(p+".expansion_speed_m_s","Expansion",1,"m/s")}${lpField(p+".optical_depth","Optical depth")}
+    ${lpField(p+".single_scatter_albedo","Scatter albedo",100,"%")}${lpField(p+".backscatter_fraction","Backscatter",100,"%")}
+    ${lpField(p+".range_response","Range response",100,"%")}${lpField(p+".clearance_fluence_j_m2","Clearance fluence",1,"J/m²")}</div></div>`;
+}
+
+function lpPretty(path, value) {
+  if (value == null) return "—";
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (Array.isArray(value)) return value.map(x => typeof x === "number" ? x.toPrecision(5) : x).join(", ");
+  if (typeof value !== "number") return String(value).replaceAll("_", " ");
+  if (path.endsWith("_w_m2")) return fmtSI(value,"W/m²");
+  if (path.endsWith("_j_m2")) return fmtSI(value,"J/m²");
+  if (path.endsWith("_m")) return fmtDist(value);
+  if (path.endsWith("_s")) return fmtDur(value);
+  if (path.endsWith("_w")) return fmtSI(value,"W");
+  if (path.endsWith("_m2")) return fmtSI(value,"m²");
+  if (path.endsWith("_rad")) return fmtSI(value,"rad");
+  if (path.includes("probability") || path.includes("factor") || path.endsWith("transmittance") || path.includes("weight") || path.includes("overlap")) return (value*100).toPrecision(4)+"%";
+  return Math.abs(value) >= 1e5 || (Math.abs(value) > 0 && Math.abs(value) < 1e-3) ? value.toExponential(4) : value.toPrecision(6);
+}
+function lpAuditRows(obj, prefix) {
+  return Object.entries(obj).filter(([,v]) => !Array.isArray(v) || v.every(x => typeof x !== "object"))
+    .map(([key,value]) => { const path = prefix+"."+key;
+      return `<tr><th>${esc(key.replaceAll("_"," "))} ${lpTip(path)}</th><td>${esc(lpPretty(path,value))}</td>
+        <td class="num">${typeof value === "number" ? esc(value.toPrecision(10)) : "—"}</td></tr>`; }).join("");
+}
+function lpAudit(title, obj, prefix, open = false) {
+  return `<details class="panel lp-audit" ${open ? "open" : ""}><summary><h3>${esc(title)}</h3></summary>
+    <table><thead><tr><th>Value</th><th>Friendly</th><th class="num">Raw SI</th></tr></thead><tbody>${lpAuditRows(obj,prefix)}</tbody></table></details>`;
+}
+function lpMetric(path, label, value, cls = "") {
+  return `<div class="lp-metric ${cls}"><span>${esc(label)} ${lpTip(path)}</span><b>${esc(lpPretty(path,value))}</b></div>`;
+}
+function lpResults(st) {
+  if (st.error) return `<div id="lp-validation" tabindex="-1" class="panel lp-error"><h2>Check the scenario</h2><p>${esc(st.error)}</p></div>`;
+  if (!st.result) return `<div class="panel lp-empty"><h2>Audit result</h2><p class="note">Set the scenario, then choose Calculate. The result will expose every stage from received photons through point-defense feasibility.</p></div>`;
+  const r = st.result, s = r.summary;
+  const cards = [lpMetric("summary.detector_state","Detector",s.detector_state),
+    lpMetric("summary.snr","SNR",s.snr), lpMetric("summary.jammer_to_signal","J/S",s.jammer_to_signal),
+    lpMetric("summary.measurement_r95_m","Measurement 95%",s.measurement_r95_m),
+    lpMetric("summary.future_aim_r95_m","Future aim 95%",s.future_aim_r95_m),
+    lpMetric("summary.body_capture_probability","Body capture",s.body_capture_probability),
+    lpMetric("summary.patch_capture_probability","Patch capture",s.patch_capture_probability),
+    lpMetric("summary.structural_kill_time_s","Structural kill",s.structural_kill_time_s),
+    lpMetric("summary.time_to_standoff_s","Time to standoff",s.time_to_standoff_s),
+    lpMetric("summary.structural_kill_feasible","Snapshot feasible",s.structural_kill_feasible,s.structural_kill_feasible?"good":"bad")].join("");
+  const jammer = r.jammers.map((x,n)=>lpAudit(`Jammer ${n+1}: ${x.id}`,x,`jammers[${n}]`)).join("");
+  const chaff = r.chaff.map((x,n)=>lpAudit(`Chaff ${n+1}: ${x.id}`,x,`chaff[${n}]`)).join("");
+  return `${st.stale?`<p class="note warn lp-stale">Inputs changed — this result is stale. Calculate again before relying on it.</p>`:""}
+    <div class="lp-summary">${cards}</div>
+    ${r.warnings.length?`<div class="panel"><h3>Warnings</h3>${r.warnings.map(x=>`<p class="note warn"><b>${esc(x.code)}</b> — ${esc(x.message)}</p>`).join("")}</div>`:""}
+    ${lpAudit("Geometry",r.geometry,"geometry",true)}${lpAudit("Lidar signal",r.signal,"signal",true)}
+    ${lpAudit("Detector",r.detector,"detector")}${lpAudit("Fire control",r.fire_control,"fire_control")}
+    ${lpAudit("Point defense",r.point_defense,"point_defense")}${jammer}${chaff}
+    <div class="panel"><h3>Assumptions & limits</h3>${r.assumptions.map(x=>`<p class="note">${esc(x)}</p>`).join("")}
+    <p class="note warn">${esc(r.point_defense.model_limitation)}</p></div>`;
+}
+
+function bindLpTooltips(root) {
+  const close = except => root.querySelectorAll(".lp-help-wrap.open").forEach(w => {
+    if (w === except) return; w.classList.remove("open"); w.dataset.locked = "";
+    w.querySelector("button").setAttribute("aria-expanded","false");
+  });
+  const open = (wrap, locked = false) => {
+    close(wrap); wrap.classList.add("open"); wrap.dataset.locked = locked ? "1" : "";
+    const b = wrap.querySelector("button"), tip = wrap.querySelector(".lp-tooltip"), box = b.getBoundingClientRect();
+    b.setAttribute("aria-expanded","true");
+    tip.style.left = Math.max(8, Math.min(window.innerWidth - 328, box.left - 10)) + "px";
+    tip.style.top = (box.bottom + 7) + "px";
+    requestAnimationFrame(() => { if (tip.getBoundingClientRect().bottom > window.innerHeight - 8)
+      tip.style.top = Math.max(8, box.top - tip.offsetHeight - 7) + "px"; });
+  };
+  root.querySelectorAll(".lp-help-wrap").forEach(wrap => {
+    const b = wrap.querySelector("button");
+    wrap.onmouseenter = () => open(wrap, wrap.dataset.locked === "1");
+    wrap.onmouseleave = () => { if (wrap.dataset.locked !== "1" && !wrap.contains(document.activeElement)) close(); };
+    b.onfocus = () => open(wrap, false);
+    b.onblur = () => { if (wrap.dataset.locked !== "1") close(); };
+    b.onclick = e => { e.stopPropagation(); const lock = wrap.dataset.locked !== "1"; lock ? open(wrap,true) : close(); };
+  });
+  root.onclick = e => { if (!e.target.closest(".lp-help-wrap")) close(); };
+  root.onkeydown = e => { if (e.key === "Escape" && root.querySelector(".lp-help-wrap.open")) {
+    close(); document.activeElement?.blur(); } };
+}
+function lpDownload(name, data) {
+  const url = URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"}));
+  const a=document.createElement("a"); a.href=url; a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(url),0);
+}
+
+function renderLidarPd(main) {
+  const st = lpState(), s = st.scenario, geom = st.geometryMode === "simple";
+  const detector = Object.entries(LP_DETECTORS).map(([k,v])=>`<option value="${k}" ${st.detectorPreset===k?"selected":""}>${v.label}</option>`).join("");
+  const target = Object.entries(LP_TARGETS).map(([k,v])=>`<option value="${k}" ${st.targetPreset===k?"selected":""}>${v.label}</option>`).join("");
+  const installed = laserWeapons().map(x=>`<option value="installed:${x.id}">${esc(x.d.name)} — ${esc(x.c.name)}</option>`).join("");
+  const weapons = Object.entries(LP_WEAPONS).map(([k,v])=>`<option value="${k}" ${st.weaponPreset===k?"selected":""}>${v[0]}</option>`).join("")+installed;
+  const detectorFields = `${lpField("detector.wavelength_m","Lidar wavelength",1e9,"nm")}${lpField("detector.transmitter_power_w","Transmitter power",1e-6,"MW")}
+    ${lpField("detector.transmitter_aperture_m","Transmitter aperture",1,"m")}${lpField("detector.transmitter_m2","Transmitter M²")}
+    ${lpField("detector.receiver_aperture_m","Receiver aperture",1,"m")}${lpField("detector.integration_time_s","Integration",1e3,"ms")}
+    ${lpField("detector.optical_throughput","Optical throughput",100,"%")}${lpField("detector.quantum_efficiency","Quantum efficiency",100,"%")}
+    ${lpField("detector.filter_center_m","Filter center",1e9,"nm")}${lpField("detector.filter_fwhm_m","Filter width",1e12,"pm")}
+    ${lpField("detector.gate_width_s","Gate width",1e9,"ns")}${lpField("detector.pulse_repetition_hz","Pulse repetition",1,"Hz")}
+    ${lpField("detector.pixel_scale_rad","Pixel scale",1e9,"nrad")}${lpField("detector.tracking_window_radius_rad","Tracking window",1e6,"µrad")}
+    ${lpField("detector.detector_floor_sigma_rad","Detector floor",1e9,"nrad")}${lpField("detector.background_photons","Background",1,"photons")}
+    ${lpField("detector.dark_counts","Dark counts",1,"counts")}${lpField("detector.read_noise_e","Read noise",1,"e⁻ RMS")}
+    ${lpField("detector.full_well_e","Full well",1,"e⁻")}${lpField("detector.recovery_time_s","Recovery",1e3,"ms")}
+    ${lpField("detector.track_snr_min","Track SNR min")}${lpField("detector.fire_control_snr_min","Fire-control SNR min")}
+    ${lpField("detector.ambiguity_ratio_min","Ambiguity ratio")}${lpField("detector.speckle_single_sigma_rad","Single-mode speckle",1e9,"nrad")}
+    ${lpField("detector.speckle_temporal_modes","Temporal modes")}${lpField("detector.speckle_wavelength_modes","Wavelength modes")}
+    ${lpField("detector.speckle_polarization_modes","Polarization modes")}${lpField("detector.speckle_view_modes","View modes")}`;
+  const posLabels = geom ? ["Range","Lateral Y","Lateral Z"] : ["X","Y","Z"];
+  const targetFields = `${[0,1,2].map((_,k)=>lpField(`target.position_m[${k}]`,posLabels[k],1e-6,"Mm")).join("")}
+    ${lpField("target.projected_area_m2","Projected area",1,"m²")}${lpField("target.characteristic_diameter_m","Characteristic diameter",1,"m")}
+    ${lpField("target.body_radius_m","Body radius",1,"m")}${lpField("target.vulnerable_patch_radius_m","Patch radius",1,"m")}
+    ${lpField("target.uv_reflectivity","UV reflectivity",100,"%")}${lpField("target.aspect_factor","Aspect factor",100,"%")}
+    ${lpField("target.closure_velocity_m_s","Closing velocity",1e-3,"km/s")}${lpField("target.warhead_standoff_m","Warhead standoff",1e-3,"km")}
+    ${lpField("target.soft_kill_fluence_j_m2","Soft-kill fluence",1,"J/m²")}${lpField("target.structural_kill_fluence_j_m2","Structural fluence",1,"J/m²")}`;
+  const fcFields = `${lpField("fire_control.processing_latency_s","Processing latency",1e3,"ms")}${lpField("fire_control.position_sigma_m","Position sigma",1,"m")}
+    ${lpField("fire_control.velocity_sigma_m_s","Velocity sigma",1,"m/s")}${lpField("fire_control.acceleration_sigma_m_s2","Acceleration sigma",1,"m/s²")}
+    ${lpField("fire_control.maneuver_persistence_s","Maneuver persistence",1e3,"ms")}${lpField("fire_control.boresight_sigma_rad","Boresight sigma",1e9,"nrad")}
+    ${lpField("fire_control.platform_sigma_rad","Platform sigma",1e9,"nrad")}${lpField("fire_control.beam_sigma_rad","Beam sigma",1e9,"nrad")}
+    ${lpField("fire_control.reacquisition_time_s","Reacquisition",1e3,"ms")}${lpField("fire_control.minimum_capture_probability","Minimum capture",100,"%")}`;
+  const weaponFields = `${lpField("weapon.wavelength_m","Weapon wavelength",1e9,"nm")}${lpField("weapon.aperture_m","Aperture",1,"m")}
+    ${lpField("weapon.m2","M²")}${lpField("weapon.listed_optical_power_w","Listed power",1e-6,"MW")}
+    ${lpField("weapon.central_lobe_fraction","Central lobe",100,"%")}${lpField("weapon.duty_cycle","Duty cycle",100,"%")}
+    ${lpField("weapon.slew_time_s","Slew time",1e3,"ms")}`;
+  main.innerHTML = `<div class="lp-toolbar panel"><h2>Lidar Countermeasures & Point Defense</h2><span class="spacer"></span>
+    <label>Scenario ${lpTip("scenario_preset")}<select id="lp-scenario-preset"><option value="stress">Aligned jammer stress case</option><option value="clean">Clean baseline</option><option value="dark">Dark rough target</option><option value="full">Full receiver baseline</option></select></label>
+    <button id="lp-import">Import</button><input id="lp-import-file" type="file" accept="application/json" hidden>
+    <button id="lp-export">Export scenario</button><button id="lp-export-result" ${st.result?"":"disabled"}>Export result</button>
+    <button id="lp-calculate" class="primary">Calculate</button></div>
+    <div class="lp-workspace"><div class="lp-input-column">
+      <div class="panel lp-context">${lpField("scenario_name","Scenario name",1,"","text")}
+        <label>Geometry ${lpTip("geometry_mode")}<select id="lp-geometry"><option value="simple" ${geom?"selected":""}>Simple range + offsets</option><option value="advanced" ${!geom?"selected":""}>Advanced X/Y/Z</option></select></label>
+        <button id="lp-use-map" class="small">Use map geometry</button></div>
+      <div class="panel lp-preset"><label>Detector ${lpTip("detector_preset")}<select id="lp-detector-preset">${detector}</select></label></div>
+      ${lpSection("Detector",detectorFields,true)}
+      <div class="panel lp-preset"><label>Target ${lpTip("target_preset")}<select id="lp-target-preset">${target}</select></label></div>
+      ${lpSection("Target",targetFields,true)}${lpSection("Fire control",fcFields)}
+      <div class="panel lp-preset"><label>Weapon ${lpTip("weapon_preset")}<select id="lp-weapon-preset">${weapons}</select></label></div>
+      ${lpSection("Point-defense weapon",weaponFields,true)}
+      ${lpSection(`Jammers (${s.jammers.length})`,s.jammers.map(lpJammerCard).join("")+`<button id="lp-add-jammer">+ jammer</button>`,false)}
+      ${lpSection(`Chaff (${s.chaff.length})`,s.chaff.map(lpChaffCard).join("")+`<button id="lp-add-chaff">+ chaff</button>`,false)}
+    </div><div class="lp-result-column" aria-live="polite">${lpResults(st)}</div></div>`;
+
+  bindLpTooltips(main);
+  main.querySelectorAll("[data-lp-path]").forEach(input => input.onchange = () => {
+    const path=input.dataset.lpPath, old=lpGet(s,path); let value;
+    if (input.type === "checkbox") value=input.checked;
+    else if (input.type === "number") value=Number(input.value)/(Number(input.dataset.lpScale)||1);
+    else value=input.value;
+    lpSet(s,path,value); st.stale=!!st.result; st.error=null;
+    if (typeof old === "string" && path.endsWith(".id")) renderLidarPd(main);
+    else { const note=main.querySelector(".lp-stale"); if(st.result&&!note) main.querySelector(".lp-result-column").insertAdjacentHTML("afterbegin",`<p class="note warn lp-stale">Inputs changed — this result is stale. Calculate again before relying on it.</p>`); }
+  });
+  $("lp-geometry").onchange=()=>{st.geometryMode=$("lp-geometry").value;renderLidarPd(main);};
+  $("lp-scenario-preset").value=st.scenarioPreset;
+  $("lp-scenario-preset").onchange=()=>{const v=$("lp-scenario-preset").value;let x=lpDefaultScenario();
+    if(v==="clean")x.jammers=[]; if(v==="dark"){x.target.uv_reflectivity=.04;x.detector.speckle_single_sigma_rad=5e-9;x.scenario_name="Dark rough missile";}
+    if(v==="full"){x.detector.receiver_aperture_m=30;x.jammers=[];x.scenario_name="Full 30 m receiver baseline";}
+    st.scenario=x;st.scenarioPreset=v;st.result=null;st.error=null;renderLidarPd(main);};
+  $("lp-detector-preset").onchange=()=>{st.detectorPreset=$("lp-detector-preset").value;Object.assign(s.detector,LP_DETECTORS[st.detectorPreset].values);st.stale=!!st.result;renderLidarPd(main);};
+  $("lp-target-preset").onchange=()=>{st.targetPreset=$("lp-target-preset").value;const p=LP_TARGETS[st.targetPreset];Object.assign(s.target,p.values);s.detector.speckle_single_sigma_rad=p.speckle||1e-9;st.stale=!!st.result;renderLidarPd(main);};
+  $("lp-weapon-preset").value=st.weaponPreset;
+  $("lp-weapon-preset").onchange=()=>{const v=$("lp-weapon-preset").value;st.weaponPreset=v;
+    if(v.startsWith("installed:")){const x=laserWeapons().find(q=>q.id===v.slice(10));if(x)Object.assign(s.weapon,{wavelength_m:x.c.lambda_m,aperture_m:x.c.aperture_m,listed_optical_power_w:x.c.p_beam_w});}
+    else {const p=LP_WEAPONS[v];Object.assign(s.weapon,{wavelength_m:532e-9,aperture_m:p[1],listed_optical_power_w:p[2],central_lobe_fraction:.84,duty_cycle:.5});}
+    st.stale=!!st.result;renderLidarPd(main);};
+  $("lp-add-jammer").onclick=()=>{s.jammers.push(lpNewJammer(s.jammers.length+1));st.stale=!!st.result;renderLidarPd(main);};
+  $("lp-add-chaff").onclick=()=>{s.chaff.push(lpNewChaff(s.chaff.length+1));st.stale=!!st.result;renderLidarPd(main);};
+  main.querySelectorAll("[data-lp-jdel]").forEach(b=>b.onclick=()=>{s.jammers.splice(+b.dataset.lpJdel,1);st.stale=!!st.result;renderLidarPd(main);});
+  main.querySelectorAll("[data-lp-cdel]").forEach(b=>b.onclick=()=>{s.chaff.splice(+b.dataset.lpCdel,1);st.stale=!!st.result;renderLidarPd(main);});
+  main.querySelectorAll("[data-lp-jcopy]").forEach(b=>b.onclick=()=>{const x=lpClone(s.jammers[+b.dataset.lpJcopy]);x.id+=" copy";s.jammers.splice(+b.dataset.lpJcopy+1,0,x);st.stale=!!st.result;renderLidarPd(main);});
+  main.querySelectorAll("[data-lp-ccopy]").forEach(b=>b.onclick=()=>{const x=lpClone(s.chaff[+b.dataset.lpCcopy]);x.id+=" copy";s.chaff.splice(+b.dataset.lpCcopy+1,0,x);st.stale=!!st.result;renderLidarPd(main);});
+  const move=(arr,n,d)=>{const [x]=arr.splice(n,1);arr.splice(n+d,0,x);st.stale=!!st.result;renderLidarPd(main);};
+  main.querySelectorAll("[data-lp-jup]").forEach(b=>b.onclick=()=>move(s.jammers,+b.dataset.lpJup,-1));
+  main.querySelectorAll("[data-lp-jdown]").forEach(b=>b.onclick=()=>move(s.jammers,+b.dataset.lpJdown,1));
+  main.querySelectorAll("[data-lp-cup]").forEach(b=>b.onclick=()=>move(s.chaff,+b.dataset.lpCup,-1));
+  main.querySelectorAll("[data-lp-cdown]").forEach(b=>b.onclick=()=>move(s.chaff,+b.dataset.lpCdown,1));
+  $("lp-calculate").onclick=async()=>{try{$("lp-calculate").disabled=true;st.result=await calc("lidar_pd",s);st.stale=false;st.error=null;}catch(e){st.error=e.message;}renderLidarPd(main);if(st.error)$("lp-validation")?.focus();};
+  $("lp-export").onclick=()=>lpDownload((s.scenario_name||"lidar-pd")+".json",s);
+  $("lp-export-result").onclick=()=>{if(st.result)lpDownload((s.scenario_name||"lidar-pd")+"-result.json",st.result);};
+  $("lp-import").onclick=()=>$("lp-import-file").click();
+  $("lp-import-file").onchange=async()=>{const file=$("lp-import-file").files[0];if(!file)return;try{const x=JSON.parse(await file.text());if(String(x.schema_version).split(".")[0]!=="1")throw new Error("Unsupported schema major version; expected 1.x.");
+    if(!x.detector||!x.target||!x.fire_control||!x.weapon)throw new Error("The file is not a complete Lidar & PD scenario.");st.scenario=x;st.result=null;st.error=null;renderLidarPd(main);}catch(e){st.error=e.message;renderLidarPd(main);$("lp-validation")?.focus();}};
+  $("lp-use-map").onclick=()=>{const ship=planSourceShip(),geo=ship&&missionGeometry(ship);if(!ship||!geo)return toast("Choose a mapped source ship and target on the System Map first.");
+    if(!(geo.distance>0))return toast("Map geometry has zero range.");if(!(geo.radialClosing>0))return toast("The selected target is opening range; v1 point-defense feasibility requires positive closing speed.");
+    s.target.position_m=[geo.distance,0,0];s.target.closure_velocity_m_s=geo.radialClosing;s.scenario_name=`${ship.name} vs ${geo.name}`;st.stale=!!st.result;renderLidarPd(main);toast("Copied current map range and radial closing speed.",true);};
+  window.__LP_TOOLTIP_COVERAGE__={missing:[...LP_MISSING_META],rendered:main.querySelectorAll(".lp-help").length};
+  if(LP_MISSING_META.size)main.querySelector(".lp-result-column").insertAdjacentHTML("afterbegin",`<p class="note bad">Tooltip coverage defect: ${esc([...LP_MISSING_META].join(", "))}</p>`);
 }
 
 /* =========================== MISSILE LAB ================================ */

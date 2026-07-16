@@ -2,14 +2,18 @@ mod physics;
 
 use axum::{
     body::Bytes,
-    extract::State,
+    extract::{rejection::JsonRejection, DefaultBodyLimit, State},
     http::{header, StatusCode},
     response::{Html, IntoResponse, Response},
     routing::{get, post},
     Json, Router,
 };
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{
+    atomic::{AtomicU64, Ordering},
+    Arc,
+};
+use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::sync::Mutex;
 
 const DEFAULT_FLEET: &str = include_str!("default_fleet.json");
@@ -33,7 +37,17 @@ async fn main() {
         lock: Mutex::new(()),
     });
 
-    let app = Router::new()
+    let app = build_router(state);
+
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:8017")
+        .await
+        .expect("bind 127.0.0.1:8017");
+    println!("Slipstick running — open http://localhost:8017");
+    axum::serve(listener, app).await.unwrap();
+}
+
+fn build_router(state: Arc<AppState>) -> Router {
+    Router::new()
         .route("/", get(index))
         .route("/style.css", get(style_css))
         .route("/plot.js", get(plot_js))
@@ -59,13 +73,11 @@ async fn main() {
         .route("/api/calc/orbit_v", post(calc_orbit_v))
         .route("/api/calc/burn_for_dv", post(calc_burn_for_dv))
         .route("/api/calc/nav_intercept", post(calc_nav_intercept))
-        .with_state(state);
-
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:8017")
-        .await
-        .expect("bind 127.0.0.1:8017");
-    println!("Slipstick running — open http://localhost:8017");
-    axum::serve(listener, app).await.unwrap();
+        .route(
+            "/api/calc/lidar_pd",
+            post(calc_lidar_pd).layer(DefaultBodyLimit::max(1024 * 1024)),
+        )
+        .with_state(state)
 }
 
 // ---- static frontend (embedded: one binary, works offline) ----------------
@@ -213,4 +225,109 @@ async fn calc_burn_for_dv(Json(i): Json<physics::BurnForDvIn>) -> Response {
 }
 async fn calc_nav_intercept(Json(i): Json<physics::NavInterceptIn>) -> Response {
     calc_response(physics::nav_intercept(&i))
+}
+
+async fn calc_lidar_pd(payload: Result<Json<physics::LidarPdIn>, JsonRejection>) -> Response {
+    let Json(i) = match payload {
+        Ok(value) => value,
+        Err(rejection) => return err(rejection.status(), &rejection.body_text()),
+    };
+    match physics::lidar_pd(&i) {
+        Ok(mut value) => {
+            value.calculation_id = calculation_uuid();
+            Json(value).into_response()
+        }
+        Err(message) => err(StatusCode::UNPROCESSABLE_ENTITY, &message),
+    }
+}
+
+fn calculation_uuid() -> String {
+    static COUNTER: AtomicU64 = AtomicU64::new(0);
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos();
+    let salt = COUNTER.fetch_add(1, Ordering::Relaxed) ^ u64::from(std::process::id());
+    let mix = |mut x: u64| {
+        x = (x ^ (x >> 30)).wrapping_mul(0xbf58_476d_1ce4_e5b9);
+        x = (x ^ (x >> 27)).wrapping_mul(0x94d0_49bb_1331_11eb);
+        x ^ (x >> 31)
+    };
+    let high = mix(nanos as u64 ^ salt);
+    let low = mix((nanos >> 64) as u64 ^ salt.rotate_left(29) ^ high);
+    let mut bytes = (((high as u128) << 64) | low as u128).to_be_bytes();
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    format!(
+        "{:02x}{:02x}{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
+        bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
+        bytes[8], bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15]
+    )
+}
+
+#[cfg(test)]
+mod api_tests {
+    use super::*;
+    use axum::{
+        body::{to_bytes, Body},
+        http::Request,
+    };
+    use tower::ServiceExt;
+
+    fn app() -> Router {
+        build_router(Arc::new(AppState {
+            data_path: PathBuf::from("/tmp/slipstick-api-test-unused.json"),
+            lock: Mutex::new(()),
+        }))
+    }
+
+    fn request(body: impl Into<Body>) -> Request<Body> {
+        Request::builder()
+            .method("POST")
+            .uri("/api/calc/lidar_pd")
+            .header(header::CONTENT_TYPE, "application/json")
+            .body(body.into())
+            .unwrap()
+    }
+
+    #[tokio::test]
+    async fn lidar_pd_api_accepts_default_and_adds_uuid() {
+        let response = app()
+            .oneshot(request(include_str!("../testdata/lidar_pd_baseline.json")))
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let value: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        let id = value["calculation_id"].as_str().unwrap();
+        assert_eq!(id.len(), 36);
+        assert_eq!(value["schema_version"], "1.0");
+    }
+
+    #[tokio::test]
+    async fn lidar_pd_api_distinguishes_json_and_validation_errors() {
+        let malformed = app().oneshot(request("{")).await.unwrap();
+        assert_eq!(malformed.status(), StatusCode::BAD_REQUEST);
+
+        let invalid = include_str!("../testdata/lidar_pd_baseline.json").replacen(
+            "\"schema_version\": \"1.0\"",
+            "\"schema_version\": \"2.0\"",
+            1,
+        );
+        let response = app().oneshot(request(invalid)).await.unwrap();
+        assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+        let bytes = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let value: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        assert!(value["error"]
+            .as_str()
+            .unwrap()
+            .starts_with("schema_version:"));
+    }
+
+    #[tokio::test]
+    async fn lidar_pd_api_rejects_oversized_body() {
+        let oversized = format!("{{\"padding\":\"{}\"}}", "x".repeat(1024 * 1024));
+        let response = app().oneshot(request(oversized)).await.unwrap();
+        assert_eq!(response.status(), StatusCode::PAYLOAD_TOO_LARGE);
+    }
 }

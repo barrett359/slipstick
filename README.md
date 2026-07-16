@@ -15,7 +15,8 @@ and one commissioned battleship.
 
 ## Division of labor
 
-- **All physics lives in Rust** in [src/physics.rs](src/physics.rs), served
+- **All physics lives in Rust** in [src/physics.rs](src/physics.rs) and its
+  focused submodules, served
   behind `POST /api/calc/*`. One auditable place for every number.
 - The server is otherwise a dumb JSON store: `GET`/`PUT /api/data`, whole
   document, written atomically.
@@ -48,6 +49,37 @@ and one commissioned battleship.
 | `orbit_v` | circular/escape velocity and period at radius r, for placing ships |
 | `burn_for_dv` | inverse rocket equation: burn time and propellant for a requested Δv, clamped at the floor |
 | `nav_intercept` | Terra-Invicta-style planner: impulsive-burn search over departure time × heading × Δv (≤ budget) against the target's future position, integrated under full gravity from the current epoch, refined, and converted to a finite burn |
+| `lidar_pd` | deterministic single-epoch lidar photon budget through jammer/chaff contamination, detector state, centroid bias, causal fire-control propagation, capture probability, and point-defense snapshot feasibility |
+
+## Lidar & point defense
+
+The **Lidar & PD** tab is a self-contained scenario lab. Its versioned JSON
+request uses SI units and is sent to `POST /api/calc/lidar_pd` with a 1 MiB
+request limit. Scenarios do not enter `fleet.json`; use the page's import and
+export actions to retain them. Results can also be exported with the complete
+geometry, signal, jammer, chaff, detector, fire-control, and point-defense
+audit trail.
+
+Built-in detector, target, and weapon presets follow the v1 specification.
+Installed design lasers can seed the weapon aperture, wavelength, and optical
+power without replacing the scenario's beam-quality, duty-cycle, or service
+assumptions. When the System Map has a mapped source ship and selected target,
+**Use map geometry** copies the current range and positive radial closing speed
+into the scenario as an editable snapshot.
+
+Every editable field and displayed result has a keyboard-accessible `?`
+explanation written in plain English. Tooltip text identifies the value's
+meaning, units, expected direction of effect, and whether it is calculated,
+assumed, or approximated. The tooltip registry is centralized in
+`static/app.js`; a rendered field without metadata produces a visible coverage
+warning and is exposed through `window.__LP_TOOLTIP_COVERAGE__` for browser
+tests.
+
+The v1 verdict is intentionally a constant-range snapshot. It does not
+time-step closure, detector recovery, target maneuver history, chaff evolution,
+or multi-target weapon service rate. Speckle diversity, diffuse return,
+rectangular chaff scattering, and equivalent-isotropic capture are explicitly
+labeled engineering assumptions or approximations in the audit output.
 
 Missiles store a payload plus ordered stages. Each stage chooses metallic
 hydrogen, antimatter thermal at an ISP tier, fusion bus, or a custom exhaust
@@ -87,6 +119,13 @@ hardcoded into the formulas.
 
 ```
 cargo test
+```
+
+After a live Lidar & PD response has been written to JSON, tooltip coverage can
+also be checked with:
+
+```
+node scripts/check_lidar_tooltips.cjs /tmp/lidar_pd_response.json
 ```
 
 covers the canon consistency check (1.82 MW fusion at Ve = 2,300 km/s →

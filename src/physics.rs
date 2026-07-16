@@ -3,6 +3,9 @@
 
 use serde::{Deserialize, Serialize};
 
+mod lidar_pd;
+pub use lidar_pd::*;
+
 pub type CalcResult<T> = Result<T, String>;
 
 fn require_pos(v: f64, name: &str) -> CalcResult<f64> {
