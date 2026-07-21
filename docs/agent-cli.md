@@ -140,6 +140,19 @@ contract with `slipstick agent schema combat`.
 ```
 
 ```sh
+# Validate a scenario before running (catches ships inside bodies, range issues)
+slipstick agent simulate validate --draft DRAFT_ID --input engagement.json
+
+# Generate valid coordinates for ships clear of all system bodies
+slipstick agent simulate place --draft DRAFT_ID --ships SHIP_A,SHIP_B --separation-m 500000000
+
+# Generate a complete scenario template with sensible doctrine defaults
+slipstick agent simulate template --draft DRAFT_ID --ships SHIP_A,SHIP_B --engagement duel --separation-m 500000000
+
+# Combined run + summary in one call (returns key events, components, and resources inline)
+slipstick agent simulate quick --draft DRAFT_ID --input engagement.json
+
+# Standard run (writes artifacts, returns outcome summary)
 slipstick agent simulate run --draft DRAFT_ID --input engagement.json
 slipstick agent simulate summary --draft DRAFT_ID --run RUN_ID
 slipstick agent simulate events --draft DRAFT_ID --run RUN_ID --offset 0 --limit 50
@@ -151,7 +164,12 @@ Each run writes `scenario.json`, `summary.json`, `timeline.jsonl`,
 probabilities, detection/fire/hit/kill timing distributions, ammunition use,
 and component-loss rates. The representative result records propellant, heat,
 flywheel energy, ammunition, tracks, retreat state, and each component's
-`intact`, `degraded`, `disabled`, or `destroyed` condition.
+`intact`, `degraded`, `disabled`, or `destroyed` condition. Component outcomes
+now include a human-readable `label` alongside the opaque `component_id`.
+
+Simulation output includes structured `warnings` when issues are detected:
+ships placed inside system bodies, initial positions beyond sensor range, or
+ships not closing toward each other.
 
 The current damage model is deliberately functional: it does not infer armor
 facings, internal geometry, fragmentation, or blast propagation. Those remain

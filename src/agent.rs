@@ -3,7 +3,7 @@ use clap::{Args, Subcommand};
 use schemars::{schema_for, JsonSchema};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::io::{self, Read};
 use std::path::{Path, PathBuf};
@@ -124,6 +124,51 @@ pub struct SimulateArgs {
 
 #[derive(Debug, Subcommand)]
 pub enum SimulateCommand {
+    /// Pre-flight validation of a combat scenario before running.
+    Validate {
+        /// Draft workspace containing fleet data.
+        #[arg(long)]
+        draft: String,
+        /// Scenario JSON file or - for stdin.
+        #[arg(long, default_value = "-")]
+        input: PathBuf,
+    },
+    /// Generate valid initial_nav coordinates for ships at a given separation.
+    Place {
+        /// Draft workspace containing fleet data.
+        #[arg(long)]
+        draft: String,
+        /// Comma-separated ship IDs.
+        #[arg(long)]
+        ships: String,
+        /// Desired separation in metres.
+        #[arg(long)]
+        separation_m: f64,
+    },
+    /// Generate a complete scenario template from ship IDs and engagement type.
+    Template {
+        /// Draft workspace containing fleet data.
+        #[arg(long)]
+        draft: String,
+        /// Comma-separated ship IDs, alternating teams (blue, red, blue, red...).
+        #[arg(long)]
+        ships: String,
+        /// Engagement type: duel, ambush, or pursuit.
+        #[arg(long, default_value = "duel")]
+        engagement: String,
+        /// Desired initial separation in metres.
+        #[arg(long, default_value_t = 500_000_000.0)]
+        separation_m: f64,
+    },
+    /// Combined run + summary that returns essential data in one call.
+    Quick {
+        /// Draft workspace containing the designs and scenario.
+        #[arg(long)]
+        draft: String,
+        /// Scenario JSON file or - for stdin.
+        #[arg(long, default_value = "-")]
+        input: PathBuf,
+    },
     Run {
         /// Draft workspace containing the designs and scenario.
         #[arg(long)]
@@ -258,6 +303,7 @@ fn capabilities() -> Envelope {
             "output": "One JSON envelope on stdout. Diagnostics use stderr. Large results are artifact-backed.",
             "exit_codes": {"0":"success", "2":"validation", "3":"revision conflict", "4":"not found", "5":"simulation", "6":"I/O"},
             "commands": ["capabilities", "schema", "fields", "snapshot", "draft", "calculate", "evaluate", "simulate"],
+            "simulate_subcommands": ["validate", "place", "template", "quick", "run", "summary", "events", "compare"],
             "domains": ["fleet", "settings", "material", "missile_design", "design", "ship_state", "system", "combat"],
             "calculators": calculator_names(),
         }),
@@ -1506,6 +1552,19 @@ fn issue(severity: &str, path: &str, message: impl Into<String>) -> Value {
 
 fn simulate_command(root: &Path, args: SimulateArgs) -> Result<Envelope, AgentError> {
     match args.command {
+        SimulateCommand::Validate { draft, input } => simulate_validate(root, &draft, &input),
+        SimulateCommand::Place {
+            draft,
+            ships,
+            separation_m,
+        } => simulate_place(root, &draft, &ships, separation_m),
+        SimulateCommand::Template {
+            draft,
+            ships,
+            engagement,
+            separation_m,
+        } => simulate_template(root, &draft, &ships, &engagement, separation_m),
+        SimulateCommand::Quick { draft, input } => simulate_quick(root, &draft, &input),
         SimulateCommand::Run { draft, input } => simulate_run(root, &draft, &input),
         SimulateCommand::Summary { draft, run } => simulate_summary(root, &draft, &run),
         SimulateCommand::Events {
@@ -1516,6 +1575,427 @@ fn simulate_command(root: &Path, args: SimulateArgs) -> Result<Envelope, AgentEr
         } => simulate_events(root, &draft, &run, offset, limit),
         SimulateCommand::Compare { draft, runs } => simulate_compare(root, &draft, &runs),
     }
+}
+
+fn simulate_validate(
+    root: &Path,
+    draft_id: &str,
+    input: &Path,
+) -> Result<Envelope, AgentError> {
+    let draft = draft_dir(root, draft_id)?;
+    let fleet = model::FleetDocument::from_value(read_json_file(&draft.join("fleet.json"))?)
+        .map_err(AgentError::validation)?;
+    let scenario: combat::CombatScenario = serde_json::from_value(read_json_input(input)?)
+        .map_err(|e| AgentError::validation(format!("combat scenario: {e}")))?;
+    let errors = combat::validate_scenario(&fleet, &scenario);
+    let warnings = combat::preflight_warnings(&fleet, &scenario);
+    let valid = errors.is_empty() && warnings.is_empty();
+    let summary = if valid {
+        "Scenario is valid and ready to run".to_string()
+    } else if errors.is_empty() {
+        format!(
+            "Scenario is valid but has {} warning(s); review before running",
+            warnings.len()
+        )
+    } else {
+        format!(
+            "Scenario has {} error(s) and {} warning(s)",
+            errors.len(),
+            warnings.len()
+        )
+    };
+    let mut out = Envelope::new(
+        "simulate validate",
+        summary,
+        json!({
+            "valid": errors.is_empty(),
+            "ready": valid,
+            "errors": errors,
+            "warnings": warnings,
+        }),
+    );
+    out.warnings = warnings.clone();
+    Ok(out)
+}
+
+fn simulate_place(
+    root: &Path,
+    draft_id: &str,
+    ships_csv: &str,
+    separation_m: f64,
+) -> Result<Envelope, AgentError> {
+    let draft = draft_dir(root, draft_id)?;
+    let fleet = model::FleetDocument::from_value(read_json_file(&draft.join("fleet.json"))?)
+        .map_err(AgentError::validation)?;
+    let ship_ids: Vec<&str> = ships_csv.split(',').map(str::trim).collect();
+    if ship_ids.len() < 2 {
+        return Err(AgentError::validation(
+            "at least two ship IDs are required",
+        ));
+    }
+    for id in &ship_ids {
+        if !fleet.states.iter().any(|s| s.id == *id) {
+            return Err(AgentError::missing(format!("unknown ship {id}")));
+        }
+    }
+    if !separation_m.is_finite() || separation_m <= 0.0 {
+        return Err(AgentError::validation(
+            "separation_m must be positive",
+        ));
+    }
+    let max_body_extent = fleet
+        .system
+        .bodies
+        .iter()
+        .map(|b| b.a_m.unwrap_or(0.0) + b.radius_m * 2.0)
+        .fold(0.0, f64::max);
+    let safe_origin = max_body_extent.max(1e11);
+    let mut nav = BTreeMap::new();
+    for (i, id) in ship_ids.iter().enumerate() {
+        let offset = if i == 0 {
+            0.0
+        } else {
+            separation_m * i as f64 / (ship_ids.len() - 1) as f64
+        };
+        let team_sign = if i % 2 == 0 { 1.0 } else { -1.0 };
+        nav.insert(
+            id.to_string(),
+            json!({
+                "x": safe_origin + offset,
+                "y": 0.0,
+                "vx": team_sign * 25_000.0,
+                "vy": 0.0,
+                "landed_on": null,
+            }),
+        );
+    }
+    let body_clearances: Vec<Value> = fleet
+        .system
+        .bodies
+        .iter()
+        .map(|b| {
+            let center = b.a_m.unwrap_or(0.0);
+            json!({
+                "body": b.name,
+                "center_m": center,
+                "radius_m": b.radius_m,
+                "clearance_m": safe_origin - center - b.radius_m,
+            })
+        })
+        .collect();
+    Ok(Envelope::new(
+        "simulate place",
+        format!(
+            "Placed {} ships at {:.0} Mm separation, {:.0} Gm from origin",
+            ship_ids.len(),
+            separation_m / 1e6,
+            safe_origin / 1e9,
+        ),
+        json!({
+            "initial_nav": nav,
+            "separation_m": separation_m,
+            "safe_origin_m": safe_origin,
+            "body_clearances": body_clearances,
+        }),
+    ))
+}
+
+fn simulate_template(
+    root: &Path,
+    draft_id: &str,
+    ships_csv: &str,
+    engagement: &str,
+    separation_m: f64,
+) -> Result<Envelope, AgentError> {
+    let draft = draft_dir(root, draft_id)?;
+    let fleet = model::FleetDocument::from_value(read_json_file(&draft.join("fleet.json"))?)
+        .map_err(AgentError::validation)?;
+    let ship_ids: Vec<&str> = ships_csv.split(',').map(str::trim).collect();
+    if ship_ids.len() < 2 {
+        return Err(AgentError::validation(
+            "at least two ship IDs are required",
+        ));
+    }
+    if !matches!(engagement, "duel" | "ambush" | "pursuit") {
+        return Err(AgentError::validation(
+            "engagement must be duel, ambush, or pursuit",
+        ));
+    }
+    for id in &ship_ids {
+        if !fleet.states.iter().any(|s| s.id == *id) {
+            return Err(AgentError::missing(format!("unknown ship {id}")));
+        }
+    }
+    let max_body_extent = fleet
+        .system
+        .bodies
+        .iter()
+        .map(|b| b.a_m.unwrap_or(0.0) + b.radius_m * 2.0)
+        .fold(0.0, f64::max);
+    let safe_origin = max_body_extent.max(1e11);
+    let mut initial_nav = BTreeMap::new();
+    let mut participants = Vec::new();
+    for (i, &id) in ship_ids.iter().enumerate() {
+        let state = fleet.states.iter().find(|s| s.id == id).unwrap();
+        let design = fleet.designs.iter().find(|d| d.id == state.design_id);
+        let is_blue = i % 2 == 0;
+        let team = if is_blue { "blue" } else { "red" };
+        let offset = if is_blue { 0.0 } else { separation_m };
+        let (vx, vy) = match engagement {
+            "duel" => {
+                if is_blue {
+                    (25_000.0, 0.0)
+                } else {
+                    (-25_000.0, 0.0)
+                }
+            }
+            "pursuit" => {
+                if is_blue {
+                    (30_000.0, 0.0)
+                } else {
+                    (5_000.0, 0.0)
+                }
+            }
+            "ambush" => {
+                if is_blue {
+                    (25_000.0, 0.0)
+                } else {
+                    (0.0, 0.0)
+                }
+            }
+            _ => (0.0, 0.0),
+        };
+        initial_nav.insert(
+            id.to_string(),
+            json!({
+                "x": safe_origin + offset,
+                "y": 0.0,
+                "vx": vx,
+                "vy": vy,
+                "landed_on": null,
+            }),
+        );
+        let max_laser_range = design
+            .map(|d| {
+                d.components
+                    .iter()
+                    .filter(|c| c.kind == "laser")
+                    .filter_map(|c| {
+                        c.profiles
+                            .iter()
+                            .filter_map(|p| p.chosen_range_m)
+                            .max_by(f64::total_cmp)
+                    })
+                    .max_by(f64::total_cmp)
+            })
+            .flatten();
+        let sensor_range = separation_m * 2.0;
+        let missile_range = separation_m;
+        let magazine_count: u32 = design
+            .map(|d| {
+                d.components
+                    .iter()
+                    .filter(|c| c.kind == "magazine")
+                    .filter_map(|c| c.capacity)
+                    .sum()
+            })
+            .unwrap_or(0);
+        let salvo = if magazine_count > 20 {
+            20
+        } else if magazine_count > 0 {
+            magazine_count.min(10)
+        } else {
+            1
+        };
+        let defensive_reserve = magazine_count / 4;
+        let target_ids: Vec<String> = ship_ids
+            .iter()
+            .enumerate()
+            .filter(|(j, _)| (j % 2 == 0) != is_blue)
+            .map(|(_, &tid)| tid.to_string())
+            .collect();
+        participants.push(json!({
+            "ship_id": id,
+            "team": team,
+            "doctrine": {
+                "rules_of_engagement": if engagement == "ambush" && !is_blue { "return_fire" } else { "weapons_free" },
+                "sensor_range_m": sensor_range,
+                "sensor_cadence_s": 5,
+                "missile_range_m": missile_range,
+                "missile_salvo": salvo,
+                "defensive_reserve": defensive_reserve,
+                "laser_fire": max_laser_range.is_some() || design.map_or(false, |d| d.components.iter().any(|c| c.kind == "laser")),
+                "retreat_integrity": 0.2,
+                "target_priority": target_ids,
+            },
+        }));
+    }
+    let duration = match engagement {
+        "pursuit" => 28_800.0,
+        _ => 14_400.0,
+    };
+    let scenario = json!({
+        "schema_version": "1.0",
+        "name": format!("{} engagement — {} ships", engagement, ship_ids.len()),
+        "duration_s": duration,
+        "step_s": 10,
+        "seed": 7,
+        "samples": 50,
+        "objective": format!(
+            "{} engagement at {:.0} Mm initial separation. Auto-generated template.",
+            engagement, separation_m / 1e6
+        ),
+        "initial_nav": initial_nav,
+        "participants": participants,
+    });
+    Ok(Envelope::new(
+        "simulate template",
+        format!(
+            "Generated {} scenario for {} ships at {:.0} Mm",
+            engagement,
+            ship_ids.len(),
+            separation_m / 1e6,
+        ),
+        scenario,
+    ))
+}
+
+fn simulate_quick(
+    root: &Path,
+    draft_id: &str,
+    input: &Path,
+) -> Result<Envelope, AgentError> {
+    let draft = draft_dir(root, draft_id)?;
+    let fleet = model::FleetDocument::from_value(read_json_file(&draft.join("fleet.json"))?)
+        .map_err(AgentError::validation)?;
+    let scenario: combat::CombatScenario = serde_json::from_value(read_json_input(input)?)
+        .map_err(|e| AgentError::validation(format!("combat scenario: {e}")))?;
+    let result = combat::run(&fleet, &scenario).map_err(AgentError::simulation)?;
+    let scenario_library_path =
+        draft
+            .join("scenarios")
+            .join(format!("{}-{}.json", slug(&scenario.name), scenario.seed));
+    write_json_atomic(
+        &scenario_library_path,
+        &serde_json::to_value(&scenario).unwrap(),
+    )?;
+    let run_id = format!(
+        "{}-{}-{}",
+        slug(&scenario.name),
+        scenario.seed,
+        unix_seconds()
+    );
+    let run_dir = draft.join("runs").join(&run_id);
+    if run_dir.exists() {
+        return Err(AgentError::conflict(format!(
+            "run {run_id} already exists; retry after the current second"
+        )));
+    }
+    fs::create_dir_all(&run_dir).map_err(|e| AgentError::io(e.to_string()))?;
+    let summary = json!({
+        "scenario": result.scenario,
+        "representative": {
+            "seed": result.representative.seed,
+            "winner": result.representative.winner,
+            "end_time_s": result.representative.end_time_s,
+            "ammunition_expended": result.representative.ammunition_expended,
+            "resources": result.representative.resources,
+            "components": result.representative.components,
+        },
+        "ensemble": result.ensemble,
+        "assumptions": result.assumptions,
+        "warnings": result.warnings,
+    });
+    write_json_atomic(
+        &run_dir.join("scenario.json"),
+        &serde_json::to_value(&scenario).unwrap(),
+    )?;
+    write_json_atomic(&run_dir.join("summary.json"), &summary)?;
+    write_json_atomic(
+        &run_dir.join("ensemble.json"),
+        &serde_json::to_value(&result.ensemble).unwrap(),
+    )?;
+    let timeline = result
+        .representative
+        .events
+        .iter()
+        .map(|e| serde_json::to_string(e).unwrap())
+        .collect::<Vec<_>>()
+        .join("\n")
+        + "\n";
+    fs::write(run_dir.join("timeline.jsonl"), timeline)
+        .map_err(|e| AgentError::io(e.to_string()))?;
+    fs::write(run_dir.join("report.md"), combat_report(&scenario, &result))
+        .map_err(|e| AgentError::io(e.to_string()))?;
+    let key_events: Vec<_> = result
+        .representative
+        .events
+        .iter()
+        .filter(|e| {
+            matches!(
+                e.kind.as_str(),
+                "track_acquired"
+                    | "missile_launch"
+                    | "missile_hit"
+                    | "laser_fire"
+                    | "retreat"
+                    | "ship_defeated"
+                    | "point_defense_kill"
+            )
+        })
+        .take(30)
+        .collect();
+    let artifacts = [
+        "summary.json",
+        "timeline.jsonl",
+        "ensemble.json",
+        "report.md",
+        "scenario.json",
+    ]
+    .iter()
+    .map(|name| run_dir.join(name).display().to_string())
+    .collect::<Vec<_>>();
+    let mut out = Envelope::new(
+        "simulate quick",
+        format!(
+            "{}: {} wins {:.0}% of {} samples, representative ends at {:.0}s",
+            scenario.name,
+            result
+                .representative
+                .winner
+                .as_deref()
+                .unwrap_or("draw"),
+            result
+                .ensemble
+                .win_probability
+                .values()
+                .copied()
+                .fold(0.0, f64::max)
+                * 100.0,
+            result.ensemble.samples,
+            result.representative.end_time_s,
+        ),
+        json!({
+            "draft": draft_id,
+            "run": run_id,
+            "outcome": {
+                "representative_seed": result.representative.seed,
+                "representative_winner": result.representative.winner,
+                "representative_end_time_s": result.representative.end_time_s,
+                "samples": result.ensemble.samples,
+                "draws": result.ensemble.draws,
+                "win_probability": result.ensemble.win_probability,
+                "timing": result.ensemble.timing,
+            },
+            "components": result.representative.components,
+            "resources": result.representative.resources,
+            "key_events": key_events,
+            "warnings": result.warnings,
+        }),
+    );
+    out.warnings = result.warnings;
+    out.artifacts = artifacts;
+    Ok(out)
 }
 
 fn simulate_run(root: &Path, draft_id: &str, input: &Path) -> Result<Envelope, AgentError> {
@@ -1558,6 +2038,7 @@ fn simulate_run(root: &Path, draft_id: &str, input: &Path) -> Result<Envelope, A
         },
         "ensemble": result.ensemble,
         "assumptions": result.assumptions,
+        "warnings": result.warnings,
     });
     write_json_atomic(
         &run_dir.join("scenario.json"),
@@ -1610,9 +2091,11 @@ fn simulate_run(root: &Path, draft_id: &str, input: &Path) -> Result<Envelope, A
                 "win_probability": result.ensemble.win_probability,
                 "timing": result.ensemble.timing,
                 "mean_ammunition_expended": result.ensemble.mean_ammunition_expended,
-            }
+            },
+            "warnings": result.warnings,
         }),
     );
+    out.warnings = result.warnings;
     out.artifacts = artifacts;
     Ok(out)
 }
