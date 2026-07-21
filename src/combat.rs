@@ -115,6 +115,8 @@ pub struct CombatEvent {
 pub struct ComponentOutcome {
     pub ship_id: String,
     pub component_id: String,
+    /// Human-readable component name from the ship design.
+    pub label: String,
     pub role: String,
     pub integrity: f64,
     pub condition: String,
@@ -171,6 +173,9 @@ pub struct EnsembleSummary {
 pub struct CombatRun {
     pub scenario: String,
     pub assumptions: Vec<String>,
+    /// Structured warnings about scenario issues detected during simulation.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub warnings: Vec<String>,
     pub representative: RepresentativeOutcome,
     pub ensemble: EnsembleSummary,
 }
@@ -178,6 +183,7 @@ pub struct CombatRun {
 #[derive(Clone)]
 struct RuntimeComponent {
     id: String,
+    label: String,
     profile: ComponentCombatProfile,
     integrity: f64,
 }
@@ -283,11 +289,89 @@ pub fn validate_scenario(fleet: &FleetDocument, scenario: &CombatScenario) -> Ve
     errors
 }
 
+pub fn preflight_warnings(fleet: &FleetDocument, scenario: &CombatScenario) -> Vec<String> {
+    let mut warnings = Vec::new();
+    let mut navs: BTreeMap<&str, &NavState> = BTreeMap::new();
+    for p in &scenario.participants {
+        let nav = scenario
+            .initial_nav
+            .get(&p.ship_id)
+            .or_else(|| fleet.system.nav.get(&p.ship_id));
+        if let Some(nav) = nav {
+            navs.insert(&p.ship_id, nav);
+            for body in &fleet.system.bodies {
+                let bx = body.a_m.unwrap_or(0.0);
+                let by = 0.0;
+                let dx = nav.x - bx;
+                let dy = nav.y - by;
+                let dist = dx.hypot(dy);
+                if dist < body.radius_m {
+                    warnings.push(format!(
+                        "{} initial position is inside {} (distance {:.0} m < radius {:.0} m); \
+                         nav_tick will clamp to surface",
+                        p.ship_id, body.name, dist, body.radius_m
+                    ));
+                } else if dist < body.radius_m * 1.5 {
+                    warnings.push(format!(
+                        "{} initial position is very close to {} ({:.0} m from center, \
+                         radius {:.0} m); strong gravitational effects expected",
+                        p.ship_id, body.name, dist, body.radius_m
+                    ));
+                }
+            }
+        }
+    }
+    let nav_list: Vec<(&str, &NavState)> = navs.iter().map(|(&k, &v)| (k, v)).collect();
+    for i in 0..nav_list.len() {
+        for j in (i + 1)..nav_list.len() {
+            let (id_a, a) = nav_list[i];
+            let (id_b, b) = nav_list[j];
+            let (range, _) = geometry(a, b);
+            let max_missile_range = scenario
+                .participants
+                .iter()
+                .map(|p| p.doctrine.missile_range_m)
+                .fold(0.0, f64::max);
+            let max_sensor_range = scenario
+                .participants
+                .iter()
+                .map(|p| p.doctrine.sensor_range_m)
+                .fold(0.0, f64::max);
+            if range > max_sensor_range * 2.0 {
+                warnings.push(format!(
+                    "{} and {} are {:.1} Mm apart, which is >{:.0}x the maximum sensor range \
+                     ({:.1} Mm); ships may never detect each other",
+                    id_a,
+                    id_b,
+                    range / 1e6,
+                    2.0,
+                    max_sensor_range / 1e6
+                ));
+            }
+            if range > max_missile_range * 1.5 && max_missile_range > 0.0 {
+                let (_, closing) = geometry(a, b);
+                if closing <= 0.0 {
+                    warnings.push(format!(
+                        "{} and {} are {:.1} Mm apart and not closing; \
+                         missiles (max range {:.1} Mm) may never reach engagement distance",
+                        id_a,
+                        id_b,
+                        range / 1e6,
+                        max_missile_range / 1e6
+                    ));
+                }
+            }
+        }
+    }
+    warnings
+}
+
 pub fn run(fleet: &FleetDocument, scenario: &CombatScenario) -> Result<CombatRun, String> {
     let errors = validate_scenario(fleet, scenario);
     if !errors.is_empty() {
         return Err(errors.join("; "));
     }
+    let warnings = preflight_warnings(fleet, scenario);
     let representative = run_one(fleet, scenario, scenario.seed)?;
     let mut wins = BTreeMap::<String, usize>::new();
     let mut draws = 0usize;
@@ -375,6 +459,7 @@ pub fn run(fleet: &FleetDocument, scenario: &CombatScenario) -> Result<CombatRun
             "Missile terminal accuracy uses the configured one-sigma error against a mass-scaled effective target radius; legacy missiles without a profile assume 70 percent accuracy.".into(),
             "Damage resolves functional component condition, not armor, fragmentation, or internal geometry.".into(),
         ],
+        warnings,
         representative,
         ensemble: EnsembleSummary {
             samples: scenario.samples,
@@ -501,6 +586,7 @@ fn run_one(
             components.push(ComponentOutcome {
                 ship_id: ship.id.clone(),
                 component_id: c.id.clone(),
+                label: c.label.clone(),
                 role: c.profile.role.clone(),
                 integrity: c.integrity,
                 condition: condition(c).into(),
@@ -547,12 +633,14 @@ fn build_runtime(
             .iter()
             .map(|c| RuntimeComponent {
                 id: c.id.clone(),
+                label: c.name.clone(),
                 profile: c.combat.clone().unwrap_or_else(|| default_combat(c)),
                 integrity: 1.0,
             })
             .collect();
         components.push(RuntimeComponent {
             id: "__structure".into(),
+            label: "Structure".into(),
             profile: ComponentCombatProfile {
                 role: "structure".into(),
                 exposure: 1.0,
@@ -1091,8 +1179,8 @@ fn apply_damage(
             None,
             Some(target_id),
             format!(
-                "{} changed {} from {} to {} after {} damage",
-                target_id, component.id, before, after, source
+                "{} {} ({}) changed from {} to {} after {} damage",
+                target_id, component.label, component.id, before, after, source
             ),
         ));
     }
@@ -1409,6 +1497,7 @@ mod tests {
         };
         let mut component = RuntimeComponent {
             id: "sensor".into(),
+            label: "Sensor".into(),
             profile,
             integrity: 1.0,
         };
