@@ -1,3 +1,6 @@
+mod agent;
+mod combat;
+mod model;
 mod physics;
 
 use axum::{
@@ -8,6 +11,7 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
+use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 use std::sync::{
     atomic::{AtomicU64, Ordering},
@@ -23,8 +27,50 @@ struct AppState {
     lock: Mutex<()>,
 }
 
+#[derive(Debug, Parser)]
+#[command(
+    name = "slipstick",
+    version,
+    about = "Ship design, navigation, and combat analysis"
+)]
+struct Cli {
+    #[command(subcommand)]
+    command: Option<Command>,
+}
+
+#[derive(Debug, Subcommand)]
+enum Command {
+    /// Run the local Slipstick web application.
+    Serve,
+    /// Use Slipstick through the stable JSON agent interface.
+    Agent(agent::AgentArgs),
+}
+
 #[tokio::main]
 async fn main() {
+    match Cli::parse().command {
+        Some(Command::Agent(args)) => {
+            let (envelope, exit_code) = match agent::execute(args) {
+                Ok(envelope) => (envelope, 0),
+                Err(error) => {
+                    eprintln!("{}: {}", error.kind, error.message);
+                    (error.envelope(), error.code)
+                }
+            };
+            println!(
+                "{}",
+                serde_json::to_string(&envelope).expect("serialize agent result envelope")
+            );
+            if exit_code != 0 {
+                std::process::exit(exit_code);
+            }
+            return;
+        }
+        Some(Command::Serve) | None => serve().await,
+    }
+}
+
+async fn serve() {
     let data_dir = PathBuf::from("data");
     let data_path = data_dir.join("fleet.json");
     if !data_path.exists() {
@@ -76,6 +122,10 @@ fn build_router(state: Arc<AppState>) -> Router {
         .route(
             "/api/calc/lidar_pd",
             post(calc_lidar_pd).layer(DefaultBodyLimit::max(1024 * 1024)),
+        )
+        .route(
+            "/api/calc/missile_engagement",
+            post(calc_missile_engagement).layer(DefaultBodyLimit::max(4 * 1024 * 1024)),
         )
         .with_state(state)
 }
@@ -142,6 +192,17 @@ async fn put_data(State(st): State<Arc<AppState>>, body: Bytes) -> Response {
         Ok(v) => v,
         Err(e) => return err(StatusCode::BAD_REQUEST, &format!("invalid JSON: {}", e)),
     };
+    let fleet = match model::FleetDocument::from_value(doc.clone()) {
+        Ok(fleet) => fleet,
+        Err(message) => return err(StatusCode::UNPROCESSABLE_ENTITY, &message),
+    };
+    let validation_errors = fleet.validate();
+    if !validation_errors.is_empty() {
+        return err(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            &validation_errors.join("; "),
+        );
+    }
     let pretty = serde_json::to_string_pretty(&doc).unwrap();
     let _g = st.lock.lock().await;
     // Write via temp file so a crash mid-write can't destroy the fleet.
@@ -241,6 +302,16 @@ async fn calc_lidar_pd(payload: Result<Json<physics::LidarPdIn>, JsonRejection>)
     }
 }
 
+async fn calc_missile_engagement(
+    payload: Result<Json<physics::MissileEngagementIn>, JsonRejection>,
+) -> Response {
+    let Json(input) = match payload {
+        Ok(value) => value,
+        Err(rejection) => return err(rejection.status(), &rejection.body_text()),
+    };
+    calc_response(physics::missile_engagement(&input))
+}
+
 fn calculation_uuid() -> String {
     static COUNTER: AtomicU64 = AtomicU64::new(0);
     let nanos = SystemTime::now()
@@ -329,5 +400,68 @@ mod api_tests {
         let oversized = format!("{{\"padding\":\"{}\"}}", "x".repeat(1024 * 1024));
         let response = app().oneshot(request(oversized)).await.unwrap();
         assert_eq!(response.status(), StatusCode::PAYLOAD_TOO_LARGE);
+    }
+
+    #[tokio::test]
+    async fn missile_engagement_api_accepts_range_stepped_scenario() {
+        let response = app()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/calc/missile_engagement")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(include_str!(
+                        "../testdata/tf_sahara_missile_engagement.json"
+                    )))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let value: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(value["summary"]["conservation_check_passed"], true);
+        assert_eq!(
+            value["checkpoints"].as_array().unwrap().last().unwrap()["range_m"],
+            50_000.0
+        );
+    }
+
+    #[tokio::test]
+    async fn cli_and_http_calculator_results_are_identical() {
+        let input = serde_json::json!({
+            "p_fusion": 1.82e6,
+            "f_exh": 0.753,
+            "eta_noz": 0.85,
+            "e_afterburner": 0.0,
+            "ve": 2.3e6,
+            "ve_max": 2.3e6,
+            "f_cap": null,
+            "mass_kg": 2300.0,
+            "duration_s": 10.0
+        });
+        let input_bytes = serde_json::to_vec(&input).unwrap();
+        let cli_input = serde_json::from_slice(&input_bytes).unwrap();
+        let expected = agent::dispatch_calculation("gear", cli_input).unwrap();
+        // Compare the public JSON wire representation on both surfaces. The
+        // in-memory serde_json number retains an extra binary-float digit that
+        // is intentionally normalized when stdout/HTTP serializes it.
+        let expected: serde_json::Value =
+            serde_json::from_slice(&serde_json::to_vec(&expected).unwrap()).unwrap();
+        let response = app()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/calc/gear")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(input_bytes))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let actual: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(actual, expected);
     }
 }

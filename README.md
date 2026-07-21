@@ -8,6 +8,19 @@ cargo run
 
 then open <http://localhost:8017>.
 
+The same binary also exposes a provider-neutral JSON CLI for coding agents and
+scripts:
+
+```
+cargo run -- agent capabilities
+cargo run -- agent schema fleet
+cargo run -- agent draft create --name "escort study"
+```
+
+The no-argument command remains the server; `cargo run -- serve` is the
+explicit equivalent. See [docs/agent-cli.md](docs/agent-cli.md) for the stable
+envelope, draft workflow, calculators, and combat simulation artifacts.
+
 Everything persists to `./data/fleet.json` — human-readable, hand-editable,
 versionable. Delete it (or edit it) freely; a default fleet is written on
 first run: four ship templates, three missile templates, eight hull materials,
@@ -50,6 +63,7 @@ and one commissioned battleship.
 | `burn_for_dv` | inverse rocket equation: burn time and propellant for a requested Δv, clamped at the floor |
 | `nav_intercept` | Terra-Invicta-style planner: impulsive-burn search over departure time × heading × Δv (≤ budget) against the target's future position, integrated under full gravity from the current epoch, refined, and converted to a finite burn |
 | `lidar_pd` | deterministic single-epoch lidar photon budget through jammer/chaff contamination, detector state, centroid bias, causal fire-control propagation, capture probability, and point-defense snapshot feasibility |
+| `missile_engagement` | deterministic range-stepped missile ledger that calls `lidar_pd` at every checkpoint, conserves buses and torplets, attributes each kill once, and tracks interceptor, EWAR, weapon, and heat state |
 
 ## Lidar & point defense
 
@@ -80,6 +94,12 @@ time-step closure, detector recovery, target maneuver history, chaff evolution,
 or multi-target weapon service rate. Speckle diversity, diffuse return,
 rectangular chaff scattering, and equivalent-isotropic capture are explicitly
 labeled engineering assumptions or approximations in the audit output.
+
+The `missile_engagement` calculator supplies the stateful layer above those
+snapshots. Its input owns checkpoint spacing, separation events, interceptor
+assumptions, sensor views, weapon layers, association-efficiency schedules, and
+thermal pools. Use `POST /api/calc/missile_engagement` or the agent CLI; large
+CLI results are written as artifacts.
 
 Missiles store a payload plus ordered stages. Each stage chooses metallic
 hydrogen, antimatter thermal at an ISP tier, fusion bus, or a custom exhaust

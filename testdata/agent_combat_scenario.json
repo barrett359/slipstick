@@ -1,0 +1,57 @@
+{
+  "schema_version": "1.0",
+  "name": "CLI smoke engagement",
+  "duration_s": 60,
+  "step_s": 10,
+  "seed": 2049,
+  "samples": 5,
+  "objective": "Exercise deterministic map-backed detection, laser fire, missile launch, resources, and artifacts.",
+  "initial_nav": {
+    "ship-ascendant": {
+      "x": 0,
+      "y": 0,
+      "vx": 0,
+      "vy": 0,
+      "landed_on": null
+    },
+    "opfor": {
+      "x": 5000000,
+      "y": 0,
+      "vx": -1000,
+      "vy": 0,
+      "landed_on": null
+    }
+  },
+  "participants": [
+    {
+      "ship_id": "ship-ascendant",
+      "team": "blue",
+      "doctrine": {
+        "rules_of_engagement": "weapons_free",
+        "sensor_range_m": 100000000,
+        "sensor_cadence_s": 10,
+        "missile_range_m": 100000000,
+        "missile_salvo": 4,
+        "defensive_reserve": 20,
+        "laser_fire": true,
+        "retreat_integrity": 0.2,
+        "target_priority": ["opfor"]
+      }
+    },
+    {
+      "ship_id": "opfor",
+      "team": "red",
+      "doctrine": {
+        "rules_of_engagement": "weapons_free",
+        "sensor_range_m": 100000000,
+        "sensor_cadence_s": 10,
+        "missile_range_m": 100000000,
+        "missile_salvo": 4,
+        "defensive_reserve": 20,
+        "laser_fire": true,
+        "retreat_integrity": 0.2,
+        "target_priority": ["ship-ascendant"]
+      }
+    }
+  ]
+}

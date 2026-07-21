@@ -1,4 +1,5 @@
 use super::CalcResult;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::f64::consts::PI;
@@ -7,7 +8,7 @@ const C: f64 = 299_792_458.0;
 const H: f64 = 6.626_070_15e-34;
 const EPS: f64 = 1e-30;
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema)]
 pub struct LidarPdIn {
     pub schema_version: String,
     pub scenario_name: String,
@@ -23,7 +24,7 @@ pub struct LidarPdIn {
     pub options: LidarOptionsIn,
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema)]
 pub struct LidarOptionsIn {
     #[serde(default = "yes")]
     pub include_disabled_entries: bool,
@@ -35,7 +36,7 @@ const fn yes() -> bool {
     true
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema)]
 pub struct LidarDetectorIn {
     pub wavelength_m: f64,
     pub transmitter_power_w: f64,
@@ -67,7 +68,7 @@ pub struct LidarDetectorIn {
     pub speckle_view_modes: f64,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema)]
 pub struct LidarTargetIn {
     pub position_m: [f64; 3],
     pub projected_area_m2: f64,
@@ -82,7 +83,7 @@ pub struct LidarTargetIn {
     pub structural_kill_fluence_j_m2: f64,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema)]
 pub struct LidarFireControlIn {
     pub processing_latency_s: f64,
     pub position_sigma_m: f64,
@@ -96,7 +97,7 @@ pub struct LidarFireControlIn {
     pub minimum_capture_probability: f64,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema)]
 pub struct LidarWeaponIn {
     pub wavelength_m: f64,
     pub aperture_m: f64,
@@ -107,14 +108,14 @@ pub struct LidarWeaponIn {
     pub slew_time_s: f64,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum LidarJammerMode {
     Noise,
     FalseSource,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema)]
 pub struct LidarJammerIn {
     pub id: String,
     pub enabled: bool,
@@ -133,7 +134,7 @@ pub struct LidarJammerIn {
     pub central_lobe_fraction: f64,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema)]
 pub struct LidarChaffIn {
     pub id: String,
     pub enabled: bool,
@@ -150,7 +151,7 @@ pub struct LidarChaffIn {
     pub clearance_fluence_j_m2: f64,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 #[allow(dead_code)] // Invalid/recovering are reserved response states; v1 is a valid single epoch.
 pub enum LidarDetectorState {
@@ -163,20 +164,20 @@ pub enum LidarDetectorState {
     Tracked,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum LidarManeuverRegime {
     Resolved,
     Unresolved,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, JsonSchema)]
 pub struct LidarWarning {
     pub code: String,
     pub message: String,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, JsonSchema)]
 pub struct LidarPdOut {
     pub schema_version: String,
     pub calculation_id: String,
@@ -194,7 +195,7 @@ pub struct LidarPdOut {
     pub assumptions: Vec<String>,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, JsonSchema)]
 pub struct LidarSummaryOut {
     pub detector_state: LidarDetectorState,
     pub fire_control_usable: bool,
@@ -211,7 +212,7 @@ pub struct LidarSummaryOut {
     pub structural_kill_feasible: bool,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, JsonSchema)]
 pub struct LidarGeometryOut {
     pub target_range_m: f64,
     pub target_line_of_sight: [f64; 3],
@@ -220,7 +221,7 @@ pub struct LidarGeometryOut {
     pub angular_acceptance_rad: f64,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, JsonSchema)]
 pub struct LidarSignalOut {
     pub lidar_spot_diameter_m: f64,
     pub lidar_spot_area_m2: f64,
@@ -234,7 +235,7 @@ pub struct LidarSignalOut {
     pub target_transmittance: f64,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, JsonSchema)]
 pub struct LidarJammerOut {
     pub id: String,
     pub enabled: bool,
@@ -258,7 +259,7 @@ pub struct LidarJammerOut {
     pub warnings: Vec<String>,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, JsonSchema)]
 pub struct LidarChaffOut {
     pub id: String,
     pub enabled: bool,
@@ -276,7 +277,7 @@ pub struct LidarChaffOut {
     pub warnings: Vec<String>,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, JsonSchema)]
 pub struct LidarDetectorOut {
     pub state: LidarDetectorState,
     pub primary_cause: String,
@@ -307,7 +308,7 @@ pub struct LidarDetectorOut {
     pub projected_recovery_time_s: f64,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, JsonSchema)]
 pub struct LidarFireControlOut {
     pub causal_delay_s: f64,
     pub maneuver_regime: LidarManeuverRegime,
@@ -327,7 +328,7 @@ pub struct LidarFireControlOut {
     pub fire_control_usable: bool,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, JsonSchema)]
 pub struct LidarPointDefenseOut {
     pub weapon_spot_diameter_m: f64,
     pub useful_central_lobe_power_w: f64,

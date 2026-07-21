@@ -1,10 +1,13 @@
 //! All physics for Slipstick. The frontend never computes physics; every
 //! number a user sees that isn't a straight sum of masses comes from here.
 
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 mod lidar_pd;
 pub use lidar_pd::*;
+mod missile_engagement;
+pub use missile_engagement::*;
 
 pub type CalcResult<T> = Result<T, String>;
 
@@ -26,7 +29,7 @@ fn require_pos(v: f64, name: &str) -> CalcResult<f64> {
 // Afterburner propellant = mdot - mdot_fuel.
 // ---------------------------------------------------------------------------
 
-#[derive(Deserialize)]
+#[derive(Deserialize, JsonSchema)]
 pub struct GearIn {
     pub p_fusion: f64,
     pub f_exh: f64,
@@ -44,7 +47,7 @@ pub struct GearIn {
     pub duration_s: Option<f64>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema)]
 pub struct GearOut {
     pub p_jet: f64,
     pub thrust: f64,
@@ -139,7 +142,7 @@ pub fn gear(i: &GearIn) -> CalcResult<GearOut> {
 // Delta-v.  dv = Ve ln(m_wet / m_floor), m_floor = m_dry exp(dv_reserve / Ve).
 // ---------------------------------------------------------------------------
 
-#[derive(Deserialize)]
+#[derive(Deserialize, JsonSchema)]
 pub struct DeltavIn {
     pub ve: f64,
     pub m_wet: f64,
@@ -148,7 +151,7 @@ pub struct DeltavIn {
     pub dv_reserve: f64,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema)]
 pub struct DeltavOut {
     pub m_floor: f64,
     pub dv: f64,
@@ -167,7 +170,7 @@ pub fn deltav(i: &DeltavIn) -> CalcResult<DeltavOut> {
 // Drive curve: thrust and delta-v sampled across the gear range, for plotting.
 // ---------------------------------------------------------------------------
 
-#[derive(Deserialize)]
+#[derive(Deserialize, JsonSchema)]
 pub struct DriveCurveIn {
     pub p_fusion: f64,
     pub f_exh: f64,
@@ -188,7 +191,7 @@ pub struct DriveCurveIn {
     pub n: Option<usize>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema)]
 pub struct DriveCurveOut {
     pub ve: Vec<f64>,
     pub thrust: Vec<f64>,
@@ -281,7 +284,7 @@ fn burn_dv(ve: f64, tau: f64, t: f64) -> f64 {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, JsonSchema)]
 pub struct TravelIn {
     pub distance: f64,
     pub ve: f64,
@@ -293,7 +296,7 @@ pub struct TravelIn {
     pub dv_reserve: f64,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema)]
 pub struct TravelOut {
     pub feasible: bool,
     /// Farthest full flip-and-burn distance at this gear and mass.
@@ -427,7 +430,7 @@ fn one() -> f64 {
     1.0
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, JsonSchema)]
 pub struct BurnIn {
     pub v0: f64,
     pub duration_s: f64,
@@ -439,7 +442,7 @@ pub struct BurnIn {
     pub direction: f64,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema)]
 pub struct BurnOut {
     /// Actual burn time (clamped at the propellant floor).
     pub t: f64,
@@ -501,7 +504,7 @@ pub fn timed_burn(i: &BurnIn) -> CalcResult<BurnOut> {
 // coast to the target. No deceleration — a flyby/intercept profile.
 // ---------------------------------------------------------------------------
 
-#[derive(Deserialize)]
+#[derive(Deserialize, JsonSchema)]
 pub struct SprintIn {
     pub distance: f64,
     #[serde(default)]
@@ -512,7 +515,7 @@ pub struct SprintIn {
     pub m_floor: f64,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema)]
 pub struct SprintOut {
     pub hit: bool,
     pub t_total: Option<f64>,
@@ -617,13 +620,13 @@ pub fn sprint(i: &SprintIn) -> CalcResult<SprintOut> {
 // feasible iff k < 1, and a_max falls out in closed form.
 // ---------------------------------------------------------------------------
 
-#[derive(Deserialize)]
+#[derive(Deserialize, JsonSchema)]
 pub struct AutoLaser {
     pub p_beam: f64,
     pub eta_wall: f64,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, JsonSchema)]
 pub struct AutosizeIn {
     /// Target wet acceleration at Ve_max, m/s².
     pub a_target: f64,
@@ -670,7 +673,7 @@ pub struct AutosizeIn {
     pub lasers: Vec<AutoLaser>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema)]
 pub struct AutosizeOut {
     pub feasible: bool,
     /// Max wet acceleration at this MR with these scaling parameters, m/s².
@@ -845,7 +848,7 @@ pub fn autosize(i: &AutosizeIn) -> CalcResult<AutosizeOut> {
 // different bookkeeping — each profile carries its own pulse length.
 // ---------------------------------------------------------------------------
 
-#[derive(Deserialize)]
+#[derive(Deserialize, JsonSchema)]
 pub struct LaserProfileIn {
     pub name: String,
     pub rho: f64,
@@ -854,7 +857,7 @@ pub struct LaserProfileIn {
     pub threshold_mm: f64,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, JsonSchema)]
 pub struct LaserProfilesIn {
     pub p_beam: f64,
     pub aperture: f64,
@@ -872,7 +875,7 @@ fn default_open_fire() -> f64 {
     1.5
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema)]
 pub struct LaserProfileOut {
     pub name: String,
     /// Range where penetration-per-pulse equals the threshold, m.
@@ -886,7 +889,7 @@ pub struct LaserProfileOut {
     pub pen_mm: Vec<f64>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema)]
 pub struct LaserProfilesOut {
     pub range_m: Vec<f64>,
     /// Airy-disc diameter (m) on the shared range grid.
@@ -984,14 +987,14 @@ pub fn laser_profiles(i: &LaserProfilesIn) -> CalcResult<LaserProfilesOut> {
 // thermal bleed (stated honestly in the UI).
 // ---------------------------------------------------------------------------
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, JsonSchema)]
 pub struct LaserMaterial {
     pub name: String,
     pub rho: f64,
     pub e_vap_mj: f64,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, JsonSchema)]
 pub struct LaserIn {
     pub p_beam: f64,
     pub aperture: f64,
@@ -1017,7 +1020,7 @@ pub struct LaserIn {
     pub q_low_w: Option<f64>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema)]
 pub struct LaserMaterialOut {
     pub name: String,
     pub r_max: f64,
@@ -1026,7 +1029,7 @@ pub struct LaserMaterialOut {
     pub rate_mm_s: Vec<f64>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema)]
 pub struct LaserShot {
     pub beam_mj: f64,
     pub electrical_mj: f64,
@@ -1034,7 +1037,7 @@ pub struct LaserShot {
     pub shots_per_bank: Option<f64>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema)]
 pub struct LaserSustain {
     /// Continuous-fire wall-plug waste, W.
     pub waste_w: f64,
@@ -1044,7 +1047,7 @@ pub struct LaserSustain {
     pub endurance_deployed_s: Option<f64>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema)]
 pub struct LaserOut {
     pub r_max_global: f64,
     /// Shared range grid (m) for all material curves.
@@ -1147,7 +1150,7 @@ pub fn laser(i: &LaserIn) -> CalcResult<LaserOut> {
 // Heat.
 // ---------------------------------------------------------------------------
 
-#[derive(Deserialize)]
+#[derive(Deserialize, JsonSchema)]
 pub struct RadiatorIn {
     pub area: f64,
     pub t_k: f64,
@@ -1162,7 +1165,7 @@ fn hundred() -> f64 {
     100.0
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema)]
 pub struct RadiatorOut {
     pub q_w: f64,
 }
@@ -1175,7 +1178,7 @@ pub fn radiator(i: &RadiatorIn) -> CalcResult<RadiatorOut> {
     })
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, JsonSchema)]
 pub struct VentIn {
     pub heat_mj: f64,
     /// Heat dumped per kg of lithium expelled (MJ/kg), canon 19.6.
@@ -1184,7 +1187,7 @@ pub struct VentIn {
     pub sink_mj_per_kg: f64,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema)]
 pub struct VentOut {
     pub li_kg: f64,
     /// Permanent sink capacity loss from the vented mass.
@@ -1207,7 +1210,7 @@ pub fn vent(i: &VentIn) -> CalcResult<VentOut> {
 // ignition acceleration of the complete stack that remains at that point.
 // ---------------------------------------------------------------------------
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, JsonSchema)]
 pub struct MissileStageIn {
     pub id: String,
     #[serde(default)]
@@ -1220,7 +1223,7 @@ pub struct MissileStageIn {
     pub jettison: bool,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, JsonSchema)]
 pub struct MissileIn {
     #[serde(default)]
     pub payload_kg: f64,
@@ -1228,7 +1231,7 @@ pub struct MissileIn {
     pub g: f64,
 }
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Clone, JsonSchema)]
 pub struct MissileStageOut {
     pub id: String,
     pub name: String,
@@ -1248,7 +1251,7 @@ pub struct MissileStageOut {
     pub jettison: bool,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema)]
 pub struct MissileSampleOut {
     pub t: f64,
     pub accel_g: f64,
@@ -1258,7 +1261,7 @@ pub struct MissileSampleOut {
     pub event: Option<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema)]
 pub struct MissileOut {
     pub m_wet: f64,
     pub m_dry: f64,
@@ -1401,7 +1404,7 @@ pub fn missile(i: &MissileIn) -> CalcResult<MissileOut> {
 // after reactor, radiator, tank, and guidance mass are accounted for.
 // ---------------------------------------------------------------------------
 
-#[derive(Deserialize)]
+#[derive(Deserialize, JsonSchema)]
 pub struct MissileOptimizeIn {
     pub total_mass_kg: f64,
     pub a0_g: f64,
@@ -1419,7 +1422,7 @@ pub struct MissileOptimizeIn {
     pub g: f64,
 }
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Clone, JsonSchema)]
 pub struct MissileOptimizedDesignOut {
     pub ve: f64,
     pub dv: f64,
@@ -1438,7 +1441,7 @@ pub struct MissileOptimizedDesignOut {
     pub mdot_kg_s: f64,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema)]
 pub struct MissileOptimizeSweepOut {
     pub sub_dry_kg: f64,
     pub sub_wet_kg: f64,
@@ -1452,7 +1455,7 @@ pub struct MissileOptimizeSweepOut {
     pub fusion_advantage: Option<f64>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema)]
 pub struct MissileOptimizeOut {
     pub submunition_mass_ratio: f64,
     pub thrust_n: f64,
@@ -1463,7 +1466,7 @@ pub struct MissileOptimizeOut {
     pub sweep: Vec<MissileOptimizeSweepOut>,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, JsonSchema)]
 enum OptimizerPropulsion {
     MhFusion,
     H2Fusion,
@@ -1682,7 +1685,7 @@ pub fn optimize_missile(i: &MissileOptimizeIn) -> CalcResult<MissileOptimizeOut>
 // Intercept: a stage-aware sequence of burn/coast phases.
 // ---------------------------------------------------------------------------
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, JsonSchema)]
 pub struct PhaseIn {
     #[serde(default)]
     pub stage_id: String,
@@ -1692,7 +1695,7 @@ pub struct PhaseIn {
     pub coast_to_range: Option<f64>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, JsonSchema)]
 pub struct InterceptIn {
     pub range: f64,
     pub v_close0: f64,
@@ -1704,7 +1707,7 @@ pub struct InterceptIn {
     pub phases: Vec<PhaseIn>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema)]
 pub struct PhaseOut {
     pub kind: String,
     pub stage_id: Option<String>,
@@ -1716,7 +1719,7 @@ pub struct PhaseOut {
     pub mass_kg: f64,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema)]
 pub struct InterceptSampleOut {
     pub t: f64,
     pub distance: f64,
@@ -1725,7 +1728,7 @@ pub struct InterceptSampleOut {
     pub stage_id: Option<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema)]
 pub struct InterceptOut {
     pub hit: bool,
     pub phase: String,
@@ -2019,7 +2022,7 @@ pub fn intercept(i: &InterceptIn) -> CalcResult<InterceptOut> {
 // Design report: all Designer-tab consistency numbers in one call.
 // ---------------------------------------------------------------------------
 
-#[derive(Deserialize)]
+#[derive(Deserialize, JsonSchema)]
 pub struct RadiatorSpec {
     pub area: f64,
     pub t_k: f64,
@@ -2028,14 +2031,14 @@ pub struct RadiatorSpec {
     pub integrity_pct: f64,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, JsonSchema)]
 pub struct LaserSpec {
     pub p_beam: f64,
     pub eta_wall: f64,
     pub t_pulse: f64,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, JsonSchema)]
 pub struct ReportIn {
     pub p_fusion: f64,
     pub f_exh: f64,
@@ -2063,7 +2066,7 @@ pub struct ReportIn {
     pub lasers: Vec<LaserSpec>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema)]
 pub struct LaserShotReport {
     pub beam_mj: f64,
     pub electrical_mj: f64,
@@ -2073,7 +2076,7 @@ pub struct LaserShotReport {
     pub waste_w: f64,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema)]
 pub struct ReportOut {
     pub p_jet: f64,
     pub thrust_max: f64,
@@ -2186,7 +2189,7 @@ pub fn design_report(i: &ReportIn) -> CalcResult<ReportOut> {
 // per substep — symplectic, so orbits don't decay over long ticks.
 // ---------------------------------------------------------------------------
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, JsonSchema)]
 pub struct NavBody {
     pub id: String,
     pub mass_kg: f64,
@@ -2200,7 +2203,7 @@ pub struct NavBody {
     pub parent: Option<String>,
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, JsonSchema)]
 pub struct NavBurnIn {
     pub thrust: f64,
     pub mdot: f64,
@@ -2216,7 +2219,7 @@ pub struct NavBurnIn {
     pub t_start_s: f64,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, JsonSchema)]
 pub struct NavShipIn {
     pub id: String,
     pub x: f64,
@@ -2232,7 +2235,7 @@ pub struct NavShipIn {
     pub burn: Option<NavBurnIn>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, JsonSchema)]
 pub struct NavTickIn {
     pub g_const: f64,
     pub epoch_s: f64,
@@ -2248,7 +2251,7 @@ pub struct NavTickIn {
     pub path_points: Option<usize>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema)]
 pub struct NavBodyOut {
     pub id: String,
     pub x: f64,
@@ -2259,7 +2262,7 @@ pub struct NavBodyOut {
     pub path: Vec<[f64; 3]>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema)]
 pub struct NavShipOut {
     pub id: String,
     pub x: f64,
@@ -2277,7 +2280,7 @@ pub struct NavShipOut {
     pub path: Vec<[f64; 3]>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema)]
 pub struct NavTickOut {
     pub epoch_s: f64,
     pub bodies: Vec<NavBodyOut>,
@@ -2663,14 +2666,14 @@ pub fn nav_tick(i: &NavTickIn) -> CalcResult<NavTickOut> {
 // Circular-orbit helper for placing ships: v_circ, v_esc, period at radius r.
 // ---------------------------------------------------------------------------
 
-#[derive(Deserialize)]
+#[derive(Deserialize, JsonSchema)]
 pub struct OrbitVIn {
     pub g_const: f64,
     pub mass_kg: f64,
     pub r_m: f64,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema)]
 pub struct OrbitVOut {
     pub v_circ: f64,
     pub v_esc: f64,
@@ -2694,7 +2697,7 @@ pub fn orbit_v(i: &OrbitVIn) -> CalcResult<OrbitVOut> {
 //   t = (m0/mdot)·(1 − exp(−Δv/ve_eff)),  ve_eff = F/mdot
 // ---------------------------------------------------------------------------
 
-#[derive(Deserialize)]
+#[derive(Deserialize, JsonSchema)]
 pub struct BurnForDvIn {
     pub thrust: f64,
     pub mdot: f64,
@@ -2703,7 +2706,7 @@ pub struct BurnForDvIn {
     pub dv: f64,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema)]
 pub struct BurnForDvOut {
     pub t_burn_s: f64,
     pub prop_kg: f64,
@@ -2743,7 +2746,7 @@ pub fn burn_for_dv(i: &BurnForDvIn) -> CalcResult<BurnForDvOut> {
 // coast for weeks, so the impulsive approximation is honest here.
 // ---------------------------------------------------------------------------
 
-#[derive(Deserialize)]
+#[derive(Deserialize, JsonSchema)]
 pub struct InterceptTargetShip {
     pub x: f64,
     pub y: f64,
@@ -2751,7 +2754,7 @@ pub struct InterceptTargetShip {
     pub vy: f64,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, JsonSchema)]
 pub struct NavInterceptIn {
     pub g_const: f64,
     /// Current sim clock — body rails are evaluated from here, not from T+0.
@@ -2777,7 +2780,7 @@ pub struct NavInterceptIn {
     pub capture_radius_m: f64,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema)]
 pub struct NavInterceptOut {
     pub feasible: bool,
     pub t_depart_s: f64,

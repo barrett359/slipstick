@@ -1,0 +1,22 @@
+[
+  {
+    "op": "add",
+    "path": "/states/-",
+    "value": {
+      "id": "opfor",
+      "name": "ISV Adversary",
+      "design_id": "battleship",
+      "propellant_t": 630000,
+      "velocity_kms": 0,
+      "sink_mj": 0,
+      "sink_capacity_mj": 2300000,
+      "flywheel_mj": 1800000,
+      "radiator_hot_pct": 100,
+      "radiator_low_pct": 100,
+      "magazines": {
+        "bb-mag-1": 100,
+        "bb-mag-int": 400
+      }
+    }
+  }
+]

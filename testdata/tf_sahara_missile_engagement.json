@@ -1,0 +1,398 @@
+{
+  "schema_version": "1.0",
+  "scenario_name": "TF Sahara first SICKLE salvo — severe contested baseline",
+  "clock": {
+    "start_time_s": 15540.0,
+    "start_range_m": 144000000.0,
+    "terminal_phase_range_m": 20000000.0,
+    "standoff_range_m": 50000.0,
+    "closure_velocity_m_s": 138000.0,
+    "outer_step_m": 10000000.0,
+    "terminal_step_m": 500000.0
+  },
+  "salvo": {
+    "initial_buses": 96,
+    "torplets_per_bus": 8,
+    "initial_decoys": 194,
+    "initial_jammers": 9,
+    "normal_separation_range_m": 20000000.0,
+    "early_release": {
+      "range_m": 25520000.0,
+      "buses": 11
+    }
+  },
+  "lidar_template": {
+    "schema_version": "1.0",
+    "scenario_name": "TF Sahara torplet under one aligned LANTERN and fresh chaff",
+    "detector": {
+      "wavelength_m": 2.66e-7,
+      "transmitter_power_w": 1000000.0,
+      "transmitter_aperture_m": 1.0,
+      "transmitter_m2": 1.0,
+      "receiver_aperture_m": 1.0,
+      "integration_time_s": 0.001,
+      "optical_throughput": 0.526,
+      "quantum_efficiency": 0.95,
+      "filter_center_m": 2.66e-7,
+      "filter_fwhm_m": 1.0e-11,
+      "gate_width_s": 7.0e-9,
+      "pulse_repetition_hz": 10000.0,
+      "pixel_scale_rad": 5.0e-8,
+      "tracking_window_radius_rad": 1.0e-6,
+      "detector_floor_sigma_rad": 1.0e-9,
+      "background_photons": 10.0,
+      "dark_counts": 0.1,
+      "read_noise_e": 1.0,
+      "full_well_e": 100000000.0,
+      "recovery_time_s": 0.002,
+      "track_snr_min": 5.0,
+      "fire_control_snr_min": 20.0,
+      "ambiguity_ratio_min": 1.0,
+      "speckle_single_sigma_rad": 1.0e-9,
+      "speckle_temporal_modes": 1.0,
+      "speckle_wavelength_modes": 1.0,
+      "speckle_polarization_modes": 1.0,
+      "speckle_view_modes": 1.0
+    },
+    "target": {
+      "position_m": [144000000.0, 0.0, 0.0],
+      "projected_area_m2": 0.25,
+      "characteristic_diameter_m": 0.5,
+      "body_radius_m": 0.25,
+      "vulnerable_patch_radius_m": 0.02,
+      "uv_reflectivity": 0.08,
+      "aspect_factor": 1.0,
+      "closure_velocity_m_s": 138000.0,
+      "warhead_standoff_m": 50000.0,
+      "soft_kill_fluence_j_m2": 100000000.0,
+      "structural_kill_fluence_j_m2": 1000000000.0
+    },
+    "fire_control": {
+      "processing_latency_s": 0.001,
+      "position_sigma_m": 0.01,
+      "velocity_sigma_m_s": 0.1,
+      "acceleration_sigma_m_s2": 100.0,
+      "maneuver_persistence_s": 0.02,
+      "boresight_sigma_rad": 4.0e-9,
+      "platform_sigma_rad": 4.0e-9,
+      "beam_sigma_rad": 3.0e-9,
+      "reacquisition_time_s": 0.05,
+      "minimum_capture_probability": 0.5
+    },
+    "weapon": {
+      "wavelength_m": 5.32e-7,
+      "aperture_m": 30.0,
+      "m2": 1.0,
+      "listed_optical_power_w": 1000000000.0,
+      "central_lobe_fraction": 0.84,
+      "duty_cycle": 0.5,
+      "slew_time_s": 0.05
+    },
+    "jammers": [
+      {
+        "id": "aligned-LANTERN",
+        "enabled": true,
+        "mode": "noise",
+        "position_m": [172800000.0, 0.0, 0.0],
+        "optical_power_w": 100.0,
+        "aperture_m": 0.1,
+        "m2": 1.0,
+        "wavelength_m": 2.66e-7,
+        "spectral_fwhm_m": 5.0e-12,
+        "pointing_error_rad": 0.0,
+        "polarization_overlap": 1.0,
+        "temporal_overlap": 0.00007,
+        "code_correlation": 0.01,
+        "range_response": 1.0,
+        "central_lobe_fraction": 0.84
+      }
+    ],
+    "chaff": [
+      {
+        "id": "fresh-torplet-puff",
+        "enabled": true,
+        "position_m": [143999999.9, 0.0, 0.0],
+        "width_m": 2.0,
+        "height_m": 2.0,
+        "depth_m": 0.1,
+        "age_s": 0.0,
+        "expansion_speed_m_s": 1.0,
+        "optical_depth": 2.0,
+        "single_scatter_albedo": 0.8,
+        "backscatter_fraction": 0.1,
+        "range_response": 1.0,
+        "clearance_fluence_j_m2": 10000000.0
+      }
+    ],
+    "options": {
+      "include_disabled_entries": true,
+      "return_intermediates": true
+    }
+  },
+  "sensor_views": [
+    {
+      "id": "dedicated-1m",
+      "name": "Dedicated 1 m fire-control receiver",
+      "receiver_aperture_m": 1.0
+    },
+    {
+      "id": "main-30m",
+      "name": "Tiberius full 30 m array in receive",
+      "receiver_aperture_m": 30.0
+    }
+  ],
+  "interceptor": {
+    "id": "mh-counter-missiles",
+    "name": "200 kg MH counter-missiles",
+    "launch_count": 212,
+    "trajectory": {
+      "range": 144000000.0,
+      "v_close0": 138000.0,
+      "payload_kg": 0.0,
+      "stages": [
+        {
+          "id": "interceptor-stage",
+          "name": "MH sprint stage",
+          "dry_mass_kg": 25.0,
+          "propellant_kg": 175.0,
+          "ve": 16700.0,
+          "a0_g": 15.0,
+          "jettison": false
+        }
+      ],
+      "g": 9.80665,
+      "phases": []
+    },
+    "merge_window_m": 12000000.0,
+    "real_target_fraction": 0.5,
+    "kill_probability_if_real": 0.4,
+    "kill_probability_if_decoy": 1.0
+  },
+  "weapon_layers": [
+    {
+      "id": "bb-main-outer",
+      "name": "Tiberius main — uncertainty-matched concentrated",
+      "target_kind": "torplet",
+      "outer_range_m": 10000000.0,
+      "inner_range_m": 3000000.0,
+      "platforms": 1,
+      "channels_per_platform": 1,
+      "weapon": {
+        "wavelength_m": 5.32e-7,
+        "aperture_m": 30.0,
+        "m2": 1.0,
+        "listed_optical_power_w": 1000000000.0,
+        "central_lobe_fraction": 0.84,
+        "duty_cycle": 0.5,
+        "slew_time_s": 0.05
+      },
+      "sensor_view_id": "dedicated-1m",
+      "association_efficiency": 0.1084,
+      "platform_schedule": [],
+      "efficiency_schedule": [],
+      "thermal_pool_id": "tiberius",
+      "wall_plug_efficiency": 0.15
+    },
+    {
+      "id": "bb-main-mid",
+      "name": "Tiberius main — narrow sequential",
+      "target_kind": "torplet",
+      "outer_range_m": 3000000.0,
+      "inner_range_m": 500000.0,
+      "platforms": 1,
+      "channels_per_platform": 1,
+      "weapon": {
+        "wavelength_m": 5.32e-7,
+        "aperture_m": 30.0,
+        "m2": 1.0,
+        "listed_optical_power_w": 1000000000.0,
+        "central_lobe_fraction": 0.84,
+        "duty_cycle": 0.5,
+        "slew_time_s": 0.05
+      },
+      "sensor_view_id": "main-30m",
+      "association_efficiency": 0.1084,
+      "platform_schedule": [],
+      "efficiency_schedule": [],
+      "thermal_pool_id": "tiberius",
+      "wall_plug_efficiency": 0.15
+    },
+    {
+      "id": "bb-secondary-mid",
+      "name": "Six battleship secondaries — sequential",
+      "target_kind": "torplet",
+      "outer_range_m": 3000000.0,
+      "inner_range_m": 500000.0,
+      "platforms": 6,
+      "channels_per_platform": 1,
+      "weapon": {
+        "wavelength_m": 5.32e-7,
+        "aperture_m": 10.0,
+        "m2": 1.0,
+        "listed_optical_power_w": 200000000.0,
+        "central_lobe_fraction": 0.84,
+        "duty_cycle": 0.5,
+        "slew_time_s": 0.05
+      },
+      "sensor_view_id": "dedicated-1m",
+      "association_efficiency": 0.1084,
+      "platform_schedule": [],
+      "efficiency_schedule": [],
+      "thermal_pool_id": "tiberius",
+      "wall_plug_efficiency": 0.15
+    },
+    {
+      "id": "corvette-spinal-mid",
+      "name": "Corvette spinals — sequential",
+      "target_kind": "torplet",
+      "outer_range_m": 3000000.0,
+      "inner_range_m": 500000.0,
+      "platforms": 15,
+      "channels_per_platform": 1,
+      "weapon": {
+        "wavelength_m": 5.32e-7,
+        "aperture_m": 15.0,
+        "m2": 1.0,
+        "listed_optical_power_w": 500000000.0,
+        "central_lobe_fraction": 0.84,
+        "duty_cycle": 0.5,
+        "slew_time_s": 0.05
+      },
+      "sensor_view_id": "dedicated-1m",
+      "association_efficiency": 0.1084,
+      "platform_schedule": [
+        { "at_range_m": 77760000.0, "count": 14 },
+        { "at_range_m": 72240000.0, "count": 13 }
+      ],
+      "efficiency_schedule": [],
+      "thermal_pool_id": "corvette-screen",
+      "wall_plug_efficiency": 0.15
+    },
+    {
+      "id": "bb-main-groups",
+      "name": "Tiberius main — ten terminal groups",
+      "target_kind": "torplet",
+      "outer_range_m": 500000.0,
+      "inner_range_m": 50000.0,
+      "platforms": 1,
+      "channels_per_platform": 10,
+      "weapon": {
+        "wavelength_m": 5.32e-7,
+        "aperture_m": 9.5,
+        "m2": 1.0,
+        "listed_optical_power_w": 100000000.0,
+        "central_lobe_fraction": 0.84,
+        "duty_cycle": 0.5,
+        "slew_time_s": 0.05
+      },
+      "sensor_view_id": "main-30m",
+      "association_efficiency": 0.1084,
+      "platform_schedule": [],
+      "efficiency_schedule": [],
+      "thermal_pool_id": "tiberius",
+      "wall_plug_efficiency": 0.15
+    },
+    {
+      "id": "bb-secondary-groups",
+      "name": "Battleship secondaries — twenty-four terminal groups",
+      "target_kind": "torplet",
+      "outer_range_m": 500000.0,
+      "inner_range_m": 50000.0,
+      "platforms": 6,
+      "channels_per_platform": 4,
+      "weapon": {
+        "wavelength_m": 5.32e-7,
+        "aperture_m": 5.0,
+        "m2": 1.0,
+        "listed_optical_power_w": 50000000.0,
+        "central_lobe_fraction": 0.84,
+        "duty_cycle": 0.5,
+        "slew_time_s": 0.05
+      },
+      "sensor_view_id": "dedicated-1m",
+      "association_efficiency": 0.1084,
+      "platform_schedule": [],
+      "efficiency_schedule": [],
+      "thermal_pool_id": "tiberius",
+      "wall_plug_efficiency": 0.15
+    },
+    {
+      "id": "corvette-spinal-groups",
+      "name": "Corvette spinals — terminal groups",
+      "target_kind": "torplet",
+      "outer_range_m": 500000.0,
+      "inner_range_m": 50000.0,
+      "platforms": 15,
+      "channels_per_platform": 5,
+      "weapon": {
+        "wavelength_m": 5.32e-7,
+        "aperture_m": 6.7,
+        "m2": 1.0,
+        "listed_optical_power_w": 100000000.0,
+        "central_lobe_fraction": 0.84,
+        "duty_cycle": 0.5,
+        "slew_time_s": 0.05
+      },
+      "sensor_view_id": "dedicated-1m",
+      "association_efficiency": 0.1084,
+      "platform_schedule": [
+        { "at_range_m": 77760000.0, "count": 14 },
+        { "at_range_m": 72240000.0, "count": 13 }
+      ],
+      "efficiency_schedule": [],
+      "thermal_pool_id": "corvette-screen",
+      "wall_plug_efficiency": 0.15
+    },
+    {
+      "id": "fleet-pdl",
+      "name": "Fleet 3 m PDL clusters",
+      "target_kind": "torplet",
+      "outer_range_m": 300000.0,
+      "inner_range_m": 50000.0,
+      "platforms": 50,
+      "channels_per_platform": 1,
+      "weapon": {
+        "wavelength_m": 5.32e-7,
+        "aperture_m": 3.0,
+        "m2": 1.0,
+        "listed_optical_power_w": 150000000.0,
+        "central_lobe_fraction": 0.84,
+        "duty_cycle": 0.5,
+        "slew_time_s": 0.05
+      },
+      "sensor_view_id": "dedicated-1m",
+      "association_efficiency": 0.1084,
+      "platform_schedule": [
+        { "at_range_m": 77760000.0, "count": 48 },
+        { "at_range_m": 72240000.0, "count": 46 }
+      ],
+      "efficiency_schedule": [],
+      "thermal_pool_id": null,
+      "wall_plug_efficiency": 0.15
+    }
+  ],
+  "thermal_pools": [
+    {
+      "id": "tiberius",
+      "name": "Tiberius 5,000 t lithium sink",
+      "capacity_j": 2160000000000.0,
+      "initial_stored_j": 0.0
+    },
+    {
+      "id": "corvette-screen",
+      "name": "Thirteen surviving corvette sinks",
+      "capacity_j": 1404000000000.0,
+      "initial_stored_j": 0.0
+    }
+  ],
+  "external_events": [
+    {
+      "range_m": 77760000.0,
+      "description": "04:27: CATHEDRAL dazzle begins; Quarrel is destroyed, removing one spinal, two PDL clusters, and one parallax bearing"
+    },
+    {
+      "range_m": 72240000.0,
+      "description": "04:27:40: Tin Rose is destroyed, removing one spinal, two PDL clusters, and another parallax bearing"
+    }
+  ]
+}
