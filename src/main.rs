@@ -403,6 +403,51 @@ mod api_tests {
     }
 
     #[tokio::test]
+    async fn fleet_save_returns_the_validation_detail() {
+        let mut fleet: serde_json::Value =
+            serde_json::from_str(include_str!("default_fleet.json")).unwrap();
+        fleet["system"]["bodies"][0]["mass_kg"] = serde_json::json!(-1.0);
+        let response = app()
+            .oneshot(
+                Request::builder()
+                    .method("PUT")
+                    .uri("/api/data")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(serde_json::to_vec(&fleet).unwrap()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+        let bytes = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let value: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        assert!(value["error"]
+            .as_str()
+            .unwrap()
+            .contains("system body sol"));
+    }
+
+    #[tokio::test]
+    async fn embedded_frontend_guards_and_explains_failed_saves() {
+        let response = app()
+            .oneshot(
+                Request::builder()
+                    .method("GET")
+                    .uri("/app.js")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let javascript = std::str::from_utf8(&body).unwrap();
+        assert!(javascript.contains("invalidNumberPath(DB)"));
+        assert!(javascript.contains("await saveResponseError(res)"));
+        assert!(javascript.contains("Save failed: "));
+    }
+
+    #[tokio::test]
     async fn missile_engagement_api_accepts_range_stepped_scenario() {
         let response = app()
             .oneshot(

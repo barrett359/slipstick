@@ -26,6 +26,36 @@ let savedRevision = 0;
 let saveInFlight = false;
 let lastSaveError = null;
 
+function invalidNumberPath(value, path = "fleet", seen = new WeakSet()) {
+  if (typeof value === "number") return Number.isFinite(value) ? null : path;
+  if (!value || typeof value !== "object") return null;
+  if (seen.has(value)) return path + " (circular reference)";
+  seen.add(value);
+  for (const [key, child] of Object.entries(value)) {
+    const childPath = Array.isArray(value) ? `${path}[${key}]` : `${path}.${key}`;
+    const invalid = invalidNumberPath(child, childPath, seen);
+    if (invalid) return invalid;
+  }
+  seen.delete(value);
+  return null;
+}
+
+function fleetSnapshot() {
+  const invalid = invalidNumberPath(DB);
+  if (invalid) throw new Error(`${invalid}: enter a valid number`);
+  return JSON.stringify(DB);
+}
+
+async function saveResponseError(res) {
+  const fallback = `HTTP ${res.status}${res.statusText ? " " + res.statusText : ""}`;
+  try {
+    const payload = await res.json();
+    return payload?.error ? `${payload.error} (${fallback})` : fallback;
+  } catch (e) {
+    return fallback;
+  }
+}
+
 function setSaveStatus(state, detail = "") {
   const el = $("save-status");
   if (!el) return;
@@ -41,14 +71,15 @@ async function flushSave() {
   clearTimeout(saveTimer);
   if (saveInFlight || !DB || savedRevision >= saveRevision) return;
   const revision = saveRevision;
-  const snapshot = JSON.stringify(DB);
+  const previousError = lastSaveError?.message;
   saveInFlight = true;
   setSaveStatus("saving");
   try {
+    const snapshot = fleetSnapshot();
     const res = await fetch("/api/data", {
       method: "PUT", headers: { "Content-Type": "application/json" }, body: snapshot,
     });
-    if (!res.ok) throw new Error("HTTP " + res.status);
+    if (!res.ok) throw new Error(await saveResponseError(res));
     savedRevision = revision;
     lastSaveError = null;
   } catch (e) {
@@ -56,7 +87,10 @@ async function flushSave() {
   } finally {
     saveInFlight = false;
   }
-  if (lastSaveError) setSaveStatus("failed", lastSaveError.message);
+  if (lastSaveError) {
+    setSaveStatus("failed", lastSaveError.message);
+    if (lastSaveError.message !== previousError) toast("Save failed: " + lastSaveError.message);
+  }
   else if (savedRevision < saveRevision) {
     setSaveStatus("dirty");
     saveTimer = setTimeout(flushSave, 0);
@@ -1097,8 +1131,10 @@ function renderDesignDetail(root, design) {
   const commit = () => {
     design.name = $("des-name").value;
     design.class = $("des-class").value;
-    design.mr = num("des-mr") || design.mr;
-    design.structure_t = num("des-struct") ?? design.structure_t;
+    const mr = num("des-mr");
+    const structure = num("des-struct");
+    if (Number.isFinite(mr) && mr > 1) design.mr = mr;
+    if (Number.isFinite(structure) && structure >= 0) design.structure_t = structure;
     design.structure_auto = $("des-struct-auto").checked;
     touch(false);
     clearTimeout(renderDesignDetail._t);
@@ -4180,12 +4216,20 @@ function bodyModal(body) {
     Gravity acts on ships; bodies themselves stay on their rails.</p>`, {
     submitLabel: "Save",
     onSubmit() {
+      const mass = num("bf-mass");
+      const radius = num("bf-radius");
+      const orbit = num("bf-a");
+      const phase = num("bf-phase");
+      if (!Number.isFinite(mass) || mass <= 0) throw new Error("Mass must be a positive number.");
+      if (!Number.isFinite(radius) || radius <= 0) throw new Error("Radius must be a positive number.");
+      if (!Number.isFinite(orbit) || orbit < 0) throw new Error("Orbit radius must be a non-negative number.");
+      if (!Number.isFinite(phase)) throw new Error("Orbital phase must be a valid number.");
       body.name = $("bf-name").value.trim() || body.id;
-      body.mass_kg = num("bf-mass");
-      body.radius_m = num("bf-radius");
+      body.mass_kg = mass;
+      body.radius_m = radius;
       body.parent = $("bf-parent").value || undefined;
-      body.a_m = num("bf-a") || 0;
-      body.phase0_deg = num("bf-phase") || 0;
+      body.a_m = orbit;
+      body.phase0_deg = phase;
       if (isNew) SYS().bodies.push(body);
       UI.map.bodyOut = null;
       touch();
