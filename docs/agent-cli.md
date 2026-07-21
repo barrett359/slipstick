@@ -111,6 +111,14 @@ refer to commissioned ship states. Their starting navigation may come from the
 draft System Map or from scenario-local `initial_nav` overrides. Retrieve the
 contract with `slipstick agent schema combat`.
 
+**Coordinate system**: `initial_nav` positions are absolute solar-system
+coordinates in metres with the Sun at the origin. Sol's radius is ~695.7 Mm
+(6.957×10⁸ m) and typical inner-system bodies extend to several AU (~1.5×10¹¹ m).
+Placing ships at `x:0` or within Sol's radius causes `nav_tick` to clamp them
+to the surface, co-locating all participants and producing physically impossible
+results. Always use `simulate place` or `simulate validate` to confirm positions
+are clear before running. Safe placement is typically >800 Gm from the origin.
+
 ```json
 {
   "schema_version":"1.0",
@@ -121,8 +129,8 @@ contract with `slipstick agent schema combat`.
   "samples":100,
   "objective":"Determine whether Blue can disengage before losing its drive.",
   "initial_nav":{
-    "blue-escort":{"x":0,"y":0,"vx":0,"vy":0,"landed_on":null},
-    "red-raider":{"x":50000000,"y":0,"vx":-1500,"vy":0,"landed_on":null}
+    "blue-escort":{"x":800000000000,"y":0,"vx":0,"vy":0,"landed_on":null},
+    "red-raider":{"x":800050000000,"y":0,"vx":-1500,"vy":0,"landed_on":null}
   },
   "participants":[
     {"ship_id":"blue-escort","team":"blue","doctrine":{
@@ -143,16 +151,25 @@ contract with `slipstick agent schema combat`.
 # Validate a scenario before running (catches ships inside bodies, range issues)
 slipstick agent simulate validate --draft DRAFT_ID --input engagement.json
 
-# Generate valid coordinates for ships clear of all system bodies
+# Generate valid initial_nav coordinates with body clearance report
+# Output: { initial_nav, separation_m, safe_origin_m, body_clearances[] }
 slipstick agent simulate place --draft DRAFT_ID --ships SHIP_A,SHIP_B --separation-m 500000000
 
-# Generate a complete scenario template with sensible doctrine defaults
+# Generate a complete scenario template with doctrine derived from ship loadouts
+# --engagement: duel (head-on, ±25 km/s), pursuit (30/5 km/s same direction),
+#               ambush (attacker moving, defender stationary / return_fire)
+# Default: --engagement duel --separation-m 500000000
+# Salvo, defensive_reserve, and sensor_range are inferred from magazine capacity.
 slipstick agent simulate template --draft DRAFT_ID --ships SHIP_A,SHIP_B --engagement duel --separation-m 500000000
 
-# Combined run + summary in one call (returns key events, components, and resources inline)
+# Combined run + summary in one call — saves all artifacts and returns inline:
+#   outcome (winner, win_probability, timing), components[], resources[],
+#   key_events[] (filtered to: track_acquired, missile_launch, missile_hit,
+#   laser_fire, retreat, ship_defeated, point_defense_kill), warnings[]
+# Use quick when you don't need full timeline pagination; use run+events otherwise.
 slipstick agent simulate quick --draft DRAFT_ID --input engagement.json
 
-# Standard run (writes artifacts, returns outcome summary)
+# Standard run (writes artifacts, returns outcome summary + warnings)
 slipstick agent simulate run --draft DRAFT_ID --input engagement.json
 slipstick agent simulate summary --draft DRAFT_ID --run RUN_ID
 slipstick agent simulate events --draft DRAFT_ID --run RUN_ID --offset 0 --limit 50
@@ -164,12 +181,14 @@ Each run writes `scenario.json`, `summary.json`, `timeline.jsonl`,
 probabilities, detection/fire/hit/kill timing distributions, ammunition use,
 and component-loss rates. The representative result records propellant, heat,
 flywheel energy, ammunition, tracks, retreat state, and each component's
-`intact`, `degraded`, `disabled`, or `destroyed` condition. Component outcomes
-now include a human-readable `label` alongside the opaque `component_id`.
+`intact`, `degraded`, `disabled`, or `destroyed` condition. Each component
+outcome includes a human-readable `label` (from the design's component name)
+alongside the opaque `component_id`.
 
-Simulation output includes structured `warnings` when issues are detected:
-ships placed inside system bodies, initial positions beyond sensor range, or
-ships not closing toward each other.
+Simulation output includes a structured `warnings` array populated when issues
+are detected: ships placed inside system bodies, initial positions beyond sensor
+range, or ships not closing toward each other. Check `warnings` before
+interpreting results.
 
 The current damage model is deliberately functional: it does not infer armor
 facings, internal geometry, fragmentation, or blast propagation. Those remain
