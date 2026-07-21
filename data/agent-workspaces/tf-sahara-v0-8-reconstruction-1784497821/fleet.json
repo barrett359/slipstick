@@ -1,0 +1,4659 @@
+{
+  "designs": [
+    {
+      "class": "battleship / lasestar",
+      "components": [
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.24,
+            "redundancy_group": "drive",
+            "role": "drive",
+            "vulnerability": 0.8
+          },
+          "id": "sol-bb-reactor",
+          "kind": "reactor",
+          "mass_t": 12000,
+          "name": "D-He3 fusion plant",
+          "p_fusion_w": 16000000000000.0,
+          "rad_load_frac": 0.01
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.48,
+            "redundancy_group": "drive",
+            "role": "drive",
+            "vulnerability": 1.0
+          },
+          "f_max_n": 1000000000.0,
+          "id": "sol-bb-nozzle",
+          "kind": "nozzle",
+          "mass_t": 6000,
+          "name": "Magnetic nozzle and gearing"
+        },
+        {
+          "area_m2": 196000,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.58,
+            "redundancy_group": "hot-loop",
+            "role": "radiator",
+            "vulnerability": 0.75
+          },
+          "eps": 0.9,
+          "id": "sol-bb-hot-rad",
+          "kind": "radiator_hot",
+          "mw_per_kg": 1.6,
+          "name": "Armored high-temperature radiator",
+          "t_k": 2000.0
+        },
+        {
+          "area_m2": 486000,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.95,
+            "redundancy_group": "low-loop",
+            "role": "radiator",
+            "vulnerability": 1.0
+          },
+          "eps": 0.9,
+          "id": "sol-bb-low-rad",
+          "kind": "radiator_low",
+          "mw_per_kg": 0.0128,
+          "name": "Retractable 700 K laser radiator",
+          "t_k": 700.0
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.22,
+            "redundancy_group": "low-loop",
+            "role": "radiator",
+            "vulnerability": 0.8
+          },
+          "id": "sol-bb-sink",
+          "kind": "heat_sink",
+          "li_t": 5000,
+          "mass_t": 5500,
+          "name": "Lithium phase-change sink"
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.28,
+            "redundancy_group": "weapon-power",
+            "role": "power",
+            "vulnerability": 0.8
+          },
+          "id": "sol-bb-fly",
+          "kind": "flywheel",
+          "mass_t": 100,
+          "name": "CNT flywheel banks"
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.5,
+            "redundancy_group": "tankage",
+            "role": "drive",
+            "vulnerability": 0.65
+          },
+          "id": "sol-bb-tank",
+          "kind": "tank",
+          "mass_t": 18000,
+          "name": "Metallic-hydrogen tankage"
+        },
+        {
+          "aperture_m": 30,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "main-array",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "sol-bb-main",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 2500,
+          "name": "30 m main phased array",
+          "p_beam_w": 1000000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 10,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "secondaries",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "sol-bb-sec-1",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 400,
+          "name": "10 m secondary 1",
+          "p_beam_w": 200000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 10,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "secondaries",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "sol-bb-sec-2",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 400,
+          "name": "10 m secondary 2",
+          "p_beam_w": 200000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 10,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "secondaries",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "sol-bb-sec-3",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 400,
+          "name": "10 m secondary 3",
+          "p_beam_w": 200000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 10,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "secondaries",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "sol-bb-sec-4",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 400,
+          "name": "10 m secondary 4",
+          "p_beam_w": 200000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 10,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "secondaries",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "sol-bb-sec-5",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 400,
+          "name": "10 m secondary 5",
+          "p_beam_w": 200000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 10,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "secondaries",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "sol-bb-sec-6",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 400,
+          "name": "10 m secondary 6",
+          "p_beam_w": 200000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 3,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "pdl",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "sol-bb-pdl-1",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 100,
+          "name": "3 m PDL cluster 1",
+          "p_beam_w": 150000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 3,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "pdl",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "sol-bb-pdl-2",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 100,
+          "name": "3 m PDL cluster 2",
+          "p_beam_w": 150000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 3,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "pdl",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "sol-bb-pdl-3",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 100,
+          "name": "3 m PDL cluster 3",
+          "p_beam_w": 150000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 3,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "pdl",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "sol-bb-pdl-4",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 100,
+          "name": "3 m PDL cluster 4",
+          "p_beam_w": 150000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 3,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "pdl",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "sol-bb-pdl-5",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 100,
+          "name": "3 m PDL cluster 5",
+          "p_beam_w": 150000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 3,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "pdl",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "sol-bb-pdl-6",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 100,
+          "name": "3 m PDL cluster 6",
+          "p_beam_w": 150000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 3,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "pdl",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "sol-bb-pdl-7",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 100,
+          "name": "3 m PDL cluster 7",
+          "p_beam_w": 150000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 3,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "pdl",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "sol-bb-pdl-8",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 100,
+          "name": "3 m PDL cluster 8",
+          "p_beam_w": 150000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 3,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "pdl",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "sol-bb-pdl-9",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 100,
+          "name": "3 m PDL cluster 9",
+          "p_beam_w": 150000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 3,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "pdl",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "sol-bb-pdl-10",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 100,
+          "name": "3 m PDL cluster 10",
+          "p_beam_w": 150000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 3,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "pdl",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "sol-bb-pdl-11",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 100,
+          "name": "3 m PDL cluster 11",
+          "p_beam_w": 150000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 3,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "pdl",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "sol-bb-pdl-12",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 100,
+          "name": "3 m PDL cluster 12",
+          "p_beam_w": 150000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.72,
+            "redundancy_group": "sensors",
+            "role": "sensor",
+            "vulnerability": 1.0
+          },
+          "id": "sol-bb-sensors",
+          "kind": "sensor_lidar",
+          "mass_t": 80,
+          "name": "Distributed radar, IR, 266 nm lidar and metrology"
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 1.0,
+            "redundancy_group": "structure",
+            "role": "armor",
+            "vulnerability": 0.45
+          },
+          "id": "sol-bb-armor",
+          "kind": "armor",
+          "mass_t": 4500,
+          "name": "Whipple and local refractory armor"
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.25,
+            "redundancy_group": "habitat",
+            "role": "habitat",
+            "vulnerability": 0.8
+          },
+          "id": "sol-bb-hab",
+          "kind": "habitat",
+          "mass_t": 750,
+          "name": "Crew, command, life support and stores"
+        },
+        {
+          "capacity": 48,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.28,
+            "redundancy_group": "ordnance",
+            "role": "magazine",
+            "vulnerability": 0.9
+          },
+          "id": "sol-bb-mag-jav",
+          "kind": "magazine",
+          "mass_t": 180,
+          "missile_id": "javelin",
+          "name": "Javelin offensive magazine"
+        },
+        {
+          "capacity": 400,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.28,
+            "redundancy_group": "ordnance",
+            "role": "magazine",
+            "vulnerability": 0.9
+          },
+          "id": "sol-bb-mag-int",
+          "kind": "magazine",
+          "mass_t": 240,
+          "missile_id": "interceptor",
+          "name": "Counter-missile magazine"
+        }
+      ],
+      "id": "sol-battleship",
+      "mr": 6.0,
+      "name": "Solarian 90 kt laser battleship",
+      "note": "Lasers v3 armament. Dry-mass target 90,000 t. Module system mass is an explicit estimate because Lasers v3 leaves it open.",
+      "structure_auto": false,
+      "structure_t": 35328.77657046875
+    },
+    {
+      "class": "missile carrier / EWAR",
+      "components": [
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.24,
+            "redundancy_group": "drive",
+            "role": "drive",
+            "vulnerability": 0.8
+          },
+          "id": "sol-mc-reactor",
+          "kind": "reactor",
+          "mass_t": 7500,
+          "name": "D-He3 fusion plant",
+          "p_fusion_w": 10000000000000.0,
+          "rad_load_frac": 0.01
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.48,
+            "redundancy_group": "drive",
+            "role": "drive",
+            "vulnerability": 1.0
+          },
+          "f_max_n": 600000000.0,
+          "id": "sol-mc-nozzle",
+          "kind": "nozzle",
+          "mass_t": 3500,
+          "name": "Magnetic nozzle and gearing"
+        },
+        {
+          "area_m2": 122500,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.58,
+            "redundancy_group": "hot-loop",
+            "role": "radiator",
+            "vulnerability": 0.75
+          },
+          "eps": 0.9,
+          "id": "sol-mc-hot-rad",
+          "kind": "radiator_hot",
+          "mw_per_kg": 1.6,
+          "name": "Armored high-temperature radiator",
+          "t_k": 2000.0
+        },
+        {
+          "area_m2": 133000,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.95,
+            "redundancy_group": "low-loop",
+            "role": "radiator",
+            "vulnerability": 1.0
+          },
+          "eps": 0.9,
+          "id": "sol-mc-low-rad",
+          "kind": "radiator_low",
+          "mw_per_kg": 0.0128,
+          "name": "Retractable 700 K laser radiator",
+          "t_k": 700.0
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.22,
+            "redundancy_group": "low-loop",
+            "role": "radiator",
+            "vulnerability": 0.8
+          },
+          "id": "sol-mc-sink",
+          "kind": "heat_sink",
+          "li_t": 2000,
+          "mass_t": 2200,
+          "name": "Lithium phase-change sink"
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.28,
+            "redundancy_group": "weapon-power",
+            "role": "power",
+            "vulnerability": 0.8
+          },
+          "id": "sol-mc-fly",
+          "kind": "flywheel",
+          "mass_t": 50,
+          "name": "CNT flywheel banks"
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.5,
+            "redundancy_group": "tankage",
+            "role": "drive",
+            "vulnerability": 0.65
+          },
+          "id": "sol-mc-tank",
+          "kind": "tank",
+          "mass_t": 11000,
+          "name": "Metallic-hydrogen tankage"
+        },
+        {
+          "aperture_m": 3,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "pdl",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "sol-mc-pdl-1",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 100,
+          "name": "3 m PDL cluster 1",
+          "p_beam_w": 150000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 3,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "pdl",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "sol-mc-pdl-2",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 100,
+          "name": "3 m PDL cluster 2",
+          "p_beam_w": 150000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 3,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "pdl",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "sol-mc-pdl-3",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 100,
+          "name": "3 m PDL cluster 3",
+          "p_beam_w": 150000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 3,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "pdl",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "sol-mc-pdl-4",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 100,
+          "name": "3 m PDL cluster 4",
+          "p_beam_w": 150000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.78,
+            "redundancy_group": "sensors",
+            "role": "sensor",
+            "vulnerability": 1.0
+          },
+          "id": "sol-mc-ewar",
+          "kind": "sensor_ewar",
+          "mass_t": 500,
+          "name": "Spinal EWAR and cooperative fire-control aperture"
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.68,
+            "redundancy_group": "sensors",
+            "role": "sensor",
+            "vulnerability": 1.0
+          },
+          "id": "sol-mc-sensors",
+          "kind": "sensor_lidar",
+          "mass_t": 80,
+          "name": "Radar, IR and 266 nm lidar suite"
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 1.0,
+            "redundancy_group": "structure",
+            "role": "armor",
+            "vulnerability": 0.45
+          },
+          "id": "sol-mc-armor",
+          "kind": "armor",
+          "mass_t": 2750,
+          "name": "Whipple and local magazine armor"
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.24,
+            "redundancy_group": "habitat",
+            "role": "habitat",
+            "vulnerability": 0.8
+          },
+          "id": "sol-mc-hab",
+          "kind": "habitat",
+          "mass_t": 540,
+          "name": "Crew and life support"
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.52,
+            "redundancy_group": "ordnance",
+            "role": "magazine",
+            "vulnerability": 0.8
+          },
+          "id": "sol-mc-handling",
+          "kind": "ordnance_handling",
+          "mass_t": 1000,
+          "name": "Cells, rails, handling and isolation"
+        },
+        {
+          "capacity": 600,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.28,
+            "redundancy_group": "ordnance",
+            "role": "magazine",
+            "vulnerability": 0.9
+          },
+          "id": "sol-mc-mag-jav",
+          "kind": "magazine",
+          "mass_t": 800,
+          "missile_id": "javelin",
+          "name": "Javelin offensive magazine"
+        },
+        {
+          "capacity": 200,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.28,
+            "redundancy_group": "ordnance",
+            "role": "magazine",
+            "vulnerability": 0.9
+          },
+          "id": "sol-mc-mag-int",
+          "kind": "magazine",
+          "mass_t": 160,
+          "missile_id": "interceptor",
+          "name": "Counter-missile magazine"
+        }
+      ],
+      "id": "sol-missile-carrier",
+      "mr": 6.0,
+      "name": "Solarian 55 kt missile carrier",
+      "note": "600 Javelins matches the lower reference class band; full-magazine flush is a doctrine choice, not a structural assumption.",
+      "structure_auto": false,
+      "structure_t": 17090.179164140623
+    },
+    {
+      "class": "drone carrier / control ship",
+      "components": [
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.24,
+            "redundancy_group": "drive",
+            "role": "drive",
+            "vulnerability": 0.8
+          },
+          "id": "sol-dc-reactor",
+          "kind": "reactor",
+          "mass_t": 6000,
+          "name": "D-He3 fusion plant",
+          "p_fusion_w": 8000000000000.0,
+          "rad_load_frac": 0.01
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.48,
+            "redundancy_group": "drive",
+            "role": "drive",
+            "vulnerability": 1.0
+          },
+          "f_max_n": 500000000.0,
+          "id": "sol-dc-nozzle",
+          "kind": "nozzle",
+          "mass_t": 3000,
+          "name": "Magnetic nozzle and gearing"
+        },
+        {
+          "area_m2": 98000,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.58,
+            "redundancy_group": "hot-loop",
+            "role": "radiator",
+            "vulnerability": 0.75
+          },
+          "eps": 0.9,
+          "id": "sol-dc-hot-rad",
+          "kind": "radiator_hot",
+          "mw_per_kg": 1.6,
+          "name": "Armored high-temperature radiator",
+          "t_k": 2000.0
+        },
+        {
+          "area_m2": 300000,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.95,
+            "redundancy_group": "low-loop",
+            "role": "radiator",
+            "vulnerability": 1.0
+          },
+          "eps": 0.9,
+          "id": "sol-dc-low-rad",
+          "kind": "radiator_low",
+          "mw_per_kg": 0.0128,
+          "name": "Retractable 700 K laser radiator",
+          "t_k": 700.0
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.22,
+            "redundancy_group": "low-loop",
+            "role": "radiator",
+            "vulnerability": 0.8
+          },
+          "id": "sol-dc-sink",
+          "kind": "heat_sink",
+          "li_t": 1000,
+          "mass_t": 1100,
+          "name": "Lithium phase-change sink"
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.28,
+            "redundancy_group": "weapon-power",
+            "role": "power",
+            "vulnerability": 0.8
+          },
+          "id": "sol-dc-fly",
+          "kind": "flywheel",
+          "mass_t": 50,
+          "name": "CNT flywheel banks"
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.5,
+            "redundancy_group": "tankage",
+            "role": "drive",
+            "vulnerability": 0.65
+          },
+          "id": "sol-dc-tank",
+          "kind": "tank",
+          "mass_t": 10000,
+          "name": "Metallic-hydrogen tankage"
+        },
+        {
+          "aperture_m": 3,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "pdl",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "sol-dc-pdl-1",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 100,
+          "name": "3 m PDL cluster 1",
+          "p_beam_w": 150000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 3,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "pdl",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "sol-dc-pdl-2",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 100,
+          "name": "3 m PDL cluster 2",
+          "p_beam_w": 150000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 3,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "pdl",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "sol-dc-pdl-3",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 100,
+          "name": "3 m PDL cluster 3",
+          "p_beam_w": 150000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 3,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "pdl",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "sol-dc-pdl-4",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 100,
+          "name": "3 m PDL cluster 4",
+          "p_beam_w": 150000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.65,
+            "redundancy_group": "drone-system",
+            "role": "hangar",
+            "vulnerability": 0.8
+          },
+          "id": "sol-dc-bays",
+          "kind": "drone_bay",
+          "mass_t": 6000,
+          "name": "101-drone bays, workshops and deployment systems"
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.72,
+            "redundancy_group": "sensors",
+            "role": "sensor",
+            "vulnerability": 1.0
+          },
+          "id": "sol-dc-c4i",
+          "kind": "sensor_ewar",
+          "mass_t": 1000,
+          "name": "Drone control, EWAR and cooperative fire-control"
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 1.0,
+            "redundancy_group": "structure",
+            "role": "armor",
+            "vulnerability": 0.45
+          },
+          "id": "sol-dc-armor",
+          "kind": "armor",
+          "mass_t": 2500,
+          "name": "Whipple and local hangar armor"
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.24,
+            "redundancy_group": "habitat",
+            "role": "habitat",
+            "vulnerability": 0.8
+          },
+          "id": "sol-dc-hab",
+          "kind": "habitat",
+          "mass_t": 600,
+          "name": "Crew and life support"
+        },
+        {
+          "capacity": 24,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.28,
+            "redundancy_group": "ordnance",
+            "role": "magazine",
+            "vulnerability": 0.9
+          },
+          "id": "sol-dc-mag-jav",
+          "kind": "magazine",
+          "mass_t": 120,
+          "missile_id": "javelin",
+          "name": "Javelin reserve magazine"
+        },
+        {
+          "capacity": 200,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.28,
+            "redundancy_group": "ordnance",
+            "role": "magazine",
+            "vulnerability": 0.9
+          },
+          "id": "sol-dc-mag-int",
+          "kind": "magazine",
+          "mass_t": 180,
+          "missile_id": "interceptor",
+          "name": "Counter-missile magazine"
+        }
+      ],
+      "id": "sol-drone-carrier",
+      "mr": 6.0,
+      "name": "Solarian 50 kt drone control ship",
+      "note": "The 101 carried drones are included as bay/C4I mass; drone flight performance is outside fleet schema v1.",
+      "structure_auto": false,
+      "structure_t": 18384.827248437497
+    },
+    {
+      "class": "corvette / sensor picket",
+      "components": [
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.24,
+            "redundancy_group": "drive",
+            "role": "drive",
+            "vulnerability": 0.8
+          },
+          "id": "sol-cv-reactor",
+          "kind": "reactor",
+          "mass_t": 750,
+          "name": "D-He3 fusion plant",
+          "p_fusion_w": 1000000000000.0,
+          "rad_load_frac": 0.01
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.48,
+            "redundancy_group": "drive",
+            "role": "drive",
+            "vulnerability": 1.0
+          },
+          "f_max_n": 80000000.0,
+          "id": "sol-cv-nozzle",
+          "kind": "nozzle",
+          "mass_t": 250,
+          "name": "Magnetic nozzle and gearing"
+        },
+        {
+          "area_m2": 12250,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.58,
+            "redundancy_group": "hot-loop",
+            "role": "radiator",
+            "vulnerability": 0.75
+          },
+          "eps": 0.9,
+          "id": "sol-cv-hot-rad",
+          "kind": "radiator_hot",
+          "mw_per_kg": 1.6,
+          "name": "Armored high-temperature radiator",
+          "t_k": 2000.0
+        },
+        {
+          "area_m2": 111000,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.95,
+            "redundancy_group": "low-loop",
+            "role": "radiator",
+            "vulnerability": 1.0
+          },
+          "eps": 0.9,
+          "id": "sol-cv-low-rad",
+          "kind": "radiator_low",
+          "mw_per_kg": 0.0128,
+          "name": "Retractable 700 K laser radiator",
+          "t_k": 700.0
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.22,
+            "redundancy_group": "low-loop",
+            "role": "radiator",
+            "vulnerability": 0.8
+          },
+          "id": "sol-cv-sink",
+          "kind": "heat_sink",
+          "li_t": 250,
+          "mass_t": 275,
+          "name": "Lithium phase-change sink"
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.28,
+            "redundancy_group": "weapon-power",
+            "role": "power",
+            "vulnerability": 0.8
+          },
+          "id": "sol-cv-fly",
+          "kind": "flywheel",
+          "mass_t": 20,
+          "name": "CNT flywheel banks"
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.5,
+            "redundancy_group": "tankage",
+            "role": "drive",
+            "vulnerability": 0.65
+          },
+          "id": "sol-cv-tank",
+          "kind": "tank",
+          "mass_t": 600,
+          "name": "Metallic-hydrogen tankage"
+        },
+        {
+          "aperture_m": 15,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "spinal",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "sol-cv-spinal",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 600,
+          "name": "15 m spinal phased array",
+          "p_beam_w": 500000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 3,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "pdl",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "sol-cv-pdl-1",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 100,
+          "name": "3 m PDL cluster 1",
+          "p_beam_w": 150000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 3,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "pdl",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "sol-cv-pdl-2",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 100,
+          "name": "3 m PDL cluster 2",
+          "p_beam_w": 150000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.82,
+            "redundancy_group": "sensors",
+            "role": "sensor",
+            "vulnerability": 1.0
+          },
+          "id": "sol-cv-sensors",
+          "kind": "sensor_lidar",
+          "mass_t": 30,
+          "name": "Picket radar, IR and 266 nm lidar"
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 1.0,
+            "redundancy_group": "structure",
+            "role": "armor",
+            "vulnerability": 0.5
+          },
+          "id": "sol-cv-armor",
+          "kind": "armor",
+          "mass_t": 250,
+          "name": "Whipple and local armor"
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.28,
+            "redundancy_group": "habitat",
+            "role": "habitat",
+            "vulnerability": 0.8
+          },
+          "id": "sol-cv-hab",
+          "kind": "habitat",
+          "mass_t": 75,
+          "name": "25 crew, life support and stores"
+        },
+        {
+          "capacity": 24,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.28,
+            "redundancy_group": "ordnance",
+            "role": "magazine",
+            "vulnerability": 0.9
+          },
+          "id": "sol-cv-mag-jav",
+          "kind": "magazine",
+          "mass_t": 75,
+          "missile_id": "javelin",
+          "name": "Javelin cells"
+        },
+        {
+          "capacity": 40,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.28,
+            "redundancy_group": "ordnance",
+            "role": "magazine",
+            "vulnerability": 0.9
+          },
+          "id": "sol-cv-mag-int",
+          "kind": "magazine",
+          "mass_t": 40,
+          "missile_id": "interceptor",
+          "name": "Counter-missile cells"
+        }
+      ],
+      "id": "sol-corvette",
+      "mr": 4.0,
+      "name": "Solarian 5 kt screen corvette",
+      "note": "Lasers v3 spinal and PDL architecture; 24 offensive plus 40 defensive rounds is a role-balanced assumption.",
+      "structure_auto": false,
+      "structure_t": 1426.498384921875
+    },
+    {
+      "class": "heavy lasestar / fleet fire control",
+      "components": [
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.24,
+            "redundancy_group": "drive",
+            "role": "drive",
+            "vulnerability": 0.8
+          },
+          "id": "cha-ls-reactor",
+          "kind": "reactor",
+          "mass_t": 18000,
+          "name": "D-He3 fusion plant",
+          "p_fusion_w": 24000000000000.0,
+          "rad_load_frac": 0.01
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.48,
+            "redundancy_group": "drive",
+            "role": "drive",
+            "vulnerability": 1.0
+          },
+          "f_max_n": 1500000000.0,
+          "id": "cha-ls-nozzle",
+          "kind": "nozzle",
+          "mass_t": 10000,
+          "name": "Magnetic nozzle and gearing"
+        },
+        {
+          "area_m2": 294000,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.58,
+            "redundancy_group": "hot-loop",
+            "role": "radiator",
+            "vulnerability": 0.75
+          },
+          "eps": 0.9,
+          "id": "cha-ls-hot-rad",
+          "kind": "radiator_hot",
+          "mw_per_kg": 1.6,
+          "name": "Armored high-temperature radiator",
+          "t_k": 2000.0
+        },
+        {
+          "area_m2": 1415000,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.95,
+            "redundancy_group": "low-loop",
+            "role": "radiator",
+            "vulnerability": 1.0
+          },
+          "eps": 0.9,
+          "id": "cha-ls-low-rad",
+          "kind": "radiator_low",
+          "mw_per_kg": 0.0128,
+          "name": "Retractable 700 K laser radiator",
+          "t_k": 700.0
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.22,
+            "redundancy_group": "low-loop",
+            "role": "radiator",
+            "vulnerability": 0.8
+          },
+          "id": "cha-ls-sink",
+          "kind": "heat_sink",
+          "li_t": 10000,
+          "mass_t": 11000,
+          "name": "Lithium phase-change sink"
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.28,
+            "redundancy_group": "weapon-power",
+            "role": "power",
+            "vulnerability": 0.8
+          },
+          "id": "cha-ls-fly",
+          "kind": "flywheel",
+          "mass_t": 250,
+          "name": "CNT flywheel banks"
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.5,
+            "redundancy_group": "tankage",
+            "role": "drive",
+            "vulnerability": 0.65
+          },
+          "id": "cha-ls-tank",
+          "kind": "tank",
+          "mass_t": 28800,
+          "name": "Metallic-hydrogen tankage"
+        },
+        {
+          "aperture_m": 60,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "main-array",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "cha-ls-main",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 9000,
+          "name": "60 m fine-segmented primary",
+          "p_beam_w": 4000000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 12,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "secondaries",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "cha-ls-sec-1",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 600,
+          "name": "12 m secondary 1",
+          "p_beam_w": 300000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 12,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "secondaries",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "cha-ls-sec-2",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 600,
+          "name": "12 m secondary 2",
+          "p_beam_w": 300000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 12,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "secondaries",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "cha-ls-sec-3",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 600,
+          "name": "12 m secondary 3",
+          "p_beam_w": 300000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 12,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "secondaries",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "cha-ls-sec-4",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 600,
+          "name": "12 m secondary 4",
+          "p_beam_w": 300000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 12,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "secondaries",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "cha-ls-sec-5",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 600,
+          "name": "12 m secondary 5",
+          "p_beam_w": 300000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 12,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "secondaries",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "cha-ls-sec-6",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 600,
+          "name": "12 m secondary 6",
+          "p_beam_w": 300000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 12,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "secondaries",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "cha-ls-sec-7",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 600,
+          "name": "12 m secondary 7",
+          "p_beam_w": 300000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 12,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "secondaries",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "cha-ls-sec-8",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 600,
+          "name": "12 m secondary 8",
+          "p_beam_w": 300000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 3,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "pdl",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "cha-ls-pdl-1",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 100,
+          "name": "3 m PDL cluster 1",
+          "p_beam_w": 150000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 3,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "pdl",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "cha-ls-pdl-2",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 100,
+          "name": "3 m PDL cluster 2",
+          "p_beam_w": 150000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 3,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "pdl",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "cha-ls-pdl-3",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 100,
+          "name": "3 m PDL cluster 3",
+          "p_beam_w": 150000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 3,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "pdl",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "cha-ls-pdl-4",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 100,
+          "name": "3 m PDL cluster 4",
+          "p_beam_w": 150000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 3,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "pdl",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "cha-ls-pdl-5",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 100,
+          "name": "3 m PDL cluster 5",
+          "p_beam_w": 150000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 3,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "pdl",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "cha-ls-pdl-6",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 100,
+          "name": "3 m PDL cluster 6",
+          "p_beam_w": 150000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 3,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "pdl",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "cha-ls-pdl-7",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 100,
+          "name": "3 m PDL cluster 7",
+          "p_beam_w": 150000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 3,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "pdl",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "cha-ls-pdl-8",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 100,
+          "name": "3 m PDL cluster 8",
+          "p_beam_w": 150000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 3,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "pdl",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "cha-ls-pdl-9",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 100,
+          "name": "3 m PDL cluster 9",
+          "p_beam_w": 150000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 3,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "pdl",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "cha-ls-pdl-10",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 100,
+          "name": "3 m PDL cluster 10",
+          "p_beam_w": 150000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 3,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "pdl",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "cha-ls-pdl-11",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 100,
+          "name": "3 m PDL cluster 11",
+          "p_beam_w": 150000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 3,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "pdl",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "cha-ls-pdl-12",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 100,
+          "name": "3 m PDL cluster 12",
+          "p_beam_w": 150000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 3,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "pdl",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "cha-ls-pdl-13",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 100,
+          "name": "3 m PDL cluster 13",
+          "p_beam_w": 150000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 3,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "pdl",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "cha-ls-pdl-14",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 100,
+          "name": "3 m PDL cluster 14",
+          "p_beam_w": 150000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 3,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "pdl",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "cha-ls-pdl-15",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 100,
+          "name": "3 m PDL cluster 15",
+          "p_beam_w": 150000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 3,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "pdl",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "cha-ls-pdl-16",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 100,
+          "name": "3 m PDL cluster 16",
+          "p_beam_w": 150000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.72,
+            "redundancy_group": "sensors",
+            "role": "sensor",
+            "vulnerability": 0.85
+          },
+          "id": "cha-ls-sensors",
+          "kind": "sensor_lidar",
+          "mass_t": 250,
+          "name": "Distributed high-coherence sensor and metrology lattice"
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.82,
+            "redundancy_group": "sensors",
+            "role": "sensor",
+            "vulnerability": 1.0
+          },
+          "id": "cha-ls-ewar",
+          "kind": "sensor_ewar",
+          "mass_t": 1200,
+          "name": "Fleet UV dazzle and fire-control coordination array"
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 1.0,
+            "redundancy_group": "structure",
+            "role": "armor",
+            "vulnerability": 0.42
+          },
+          "id": "cha-ls-armor",
+          "kind": "armor",
+          "mass_t": 9000,
+          "name": "Whipple and local refractory armor"
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.18,
+            "redundancy_group": "habitat",
+            "role": "habitat",
+            "vulnerability": 0.7
+          },
+          "id": "cha-ls-hab",
+          "kind": "habitat",
+          "mass_t": 500,
+          "name": "Minimal human accommodation and maintenance volume"
+        },
+        {
+          "capacity": 40,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.28,
+            "redundancy_group": "ordnance",
+            "role": "magazine",
+            "vulnerability": 0.9
+          },
+          "id": "cha-ls-mag-sickle",
+          "kind": "magazine",
+          "mass_t": 250,
+          "missile_id": "sickle",
+          "name": "SICKLE magazine"
+        },
+        {
+          "capacity": 800,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.28,
+            "redundancy_group": "ordnance",
+            "role": "magazine",
+            "vulnerability": 0.9
+          },
+          "id": "cha-ls-mag-int",
+          "kind": "magazine",
+          "mass_t": 400,
+          "missile_id": "interceptor",
+          "name": "Counter-missile magazine"
+        }
+      ],
+      "id": "cha-lasestar",
+      "mr": 5.0,
+      "name": "Chanduran CATHEDRAL bracket lasestar",
+      "note": "PROVISIONAL: project knowledge has no authoritative Chanduran hull spec. 60 m / 4 GW brackets a same-technology aperture scaled from Lasers v3, not the chapter's unreliable 62 m / 3 GW claim.",
+      "structure_auto": false,
+      "structure_t": 82205.51799179688
+    },
+    {
+      "class": "heavy escort / cruiser",
+      "components": [
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.24,
+            "redundancy_group": "drive",
+            "role": "drive",
+            "vulnerability": 0.8
+          },
+          "id": "cha-hv-reactor",
+          "kind": "reactor",
+          "mass_t": 4500,
+          "name": "D-He3 fusion plant",
+          "p_fusion_w": 6000000000000.0,
+          "rad_load_frac": 0.01
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.48,
+            "redundancy_group": "drive",
+            "role": "drive",
+            "vulnerability": 1.0
+          },
+          "f_max_n": 400000000.0,
+          "id": "cha-hv-nozzle",
+          "kind": "nozzle",
+          "mass_t": 2500,
+          "name": "Magnetic nozzle and gearing"
+        },
+        {
+          "area_m2": 73500,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.58,
+            "redundancy_group": "hot-loop",
+            "role": "radiator",
+            "vulnerability": 0.75
+          },
+          "eps": 0.9,
+          "id": "cha-hv-hot-rad",
+          "kind": "radiator_hot",
+          "mw_per_kg": 1.6,
+          "name": "Armored high-temperature radiator",
+          "t_k": 2000.0
+        },
+        {
+          "area_m2": 300000,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.95,
+            "redundancy_group": "low-loop",
+            "role": "radiator",
+            "vulnerability": 1.0
+          },
+          "eps": 0.9,
+          "id": "cha-hv-low-rad",
+          "kind": "radiator_low",
+          "mw_per_kg": 0.0128,
+          "name": "Retractable 700 K laser radiator",
+          "t_k": 700.0
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.22,
+            "redundancy_group": "low-loop",
+            "role": "radiator",
+            "vulnerability": 0.8
+          },
+          "id": "cha-hv-sink",
+          "kind": "heat_sink",
+          "li_t": 2000,
+          "mass_t": 2200,
+          "name": "Lithium phase-change sink"
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.28,
+            "redundancy_group": "weapon-power",
+            "role": "power",
+            "vulnerability": 0.8
+          },
+          "id": "cha-hv-fly",
+          "kind": "flywheel",
+          "mass_t": 80,
+          "name": "CNT flywheel banks"
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.5,
+            "redundancy_group": "tankage",
+            "role": "drive",
+            "vulnerability": 0.65
+          },
+          "id": "cha-hv-tank",
+          "kind": "tank",
+          "mass_t": 5600,
+          "name": "Metallic-hydrogen tankage"
+        },
+        {
+          "aperture_m": 30,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "main-array",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "cha-hv-main",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 2500,
+          "name": "30 m primary array",
+          "p_beam_w": 1000000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 10,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "secondaries",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "cha-hv-sec-1",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 400,
+          "name": "10 m secondary 1",
+          "p_beam_w": 200000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 10,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "secondaries",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "cha-hv-sec-2",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 400,
+          "name": "10 m secondary 2",
+          "p_beam_w": 200000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 10,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "secondaries",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "cha-hv-sec-3",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 400,
+          "name": "10 m secondary 3",
+          "p_beam_w": 200000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 10,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "secondaries",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "cha-hv-sec-4",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 400,
+          "name": "10 m secondary 4",
+          "p_beam_w": 200000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.75,
+            "redundancy_group": "sensors",
+            "role": "sensor",
+            "vulnerability": 0.9
+          },
+          "id": "cha-hv-sensors",
+          "kind": "sensor_lidar",
+          "mass_t": 100,
+          "name": "Chanduran cooperative sensor suite"
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.78,
+            "redundancy_group": "sensors",
+            "role": "sensor",
+            "vulnerability": 1.0
+          },
+          "id": "cha-hv-ewar",
+          "kind": "sensor_ewar",
+          "mass_t": 350,
+          "name": "Dazzle and jammer coordination"
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 1.0,
+            "redundancy_group": "structure",
+            "role": "armor",
+            "vulnerability": 0.45
+          },
+          "id": "cha-hv-armor",
+          "kind": "armor",
+          "mass_t": 1750,
+          "name": "Whipple and local armor"
+        },
+        {
+          "capacity": 32,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.28,
+            "redundancy_group": "ordnance",
+            "role": "magazine",
+            "vulnerability": 0.9
+          },
+          "id": "cha-hv-mag-sickle",
+          "kind": "magazine",
+          "mass_t": 180,
+          "missile_id": "sickle",
+          "name": "SICKLE magazine"
+        },
+        {
+          "capacity": 240,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.28,
+            "redundancy_group": "ordnance",
+            "role": "magazine",
+            "vulnerability": 0.9
+          },
+          "id": "cha-hv-mag-int",
+          "kind": "magazine",
+          "mass_t": 160,
+          "missile_id": "interceptor",
+          "name": "Counter-missile magazine"
+        }
+      ],
+      "id": "cha-heavy",
+      "mr": 5.0,
+      "name": "Chanduran heavy escort bracket",
+      "note": "PROVISIONAL Chanduran estimate. Inventory helps close a 164-bus initial battle-group load.",
+      "structure_auto": false,
+      "structure_t": 12243.3295984375
+    },
+    {
+      "class": "light escort / picket",
+      "components": [
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.24,
+            "redundancy_group": "drive",
+            "role": "drive",
+            "vulnerability": 0.8
+          },
+          "id": "cha-lt-reactor",
+          "kind": "reactor",
+          "mass_t": 1050,
+          "name": "D-He3 fusion plant",
+          "p_fusion_w": 1400000000000.0,
+          "rad_load_frac": 0.01
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.48,
+            "redundancy_group": "drive",
+            "role": "drive",
+            "vulnerability": 1.0
+          },
+          "f_max_n": 110000000.0,
+          "id": "cha-lt-nozzle",
+          "kind": "nozzle",
+          "mass_t": 450,
+          "name": "Magnetic nozzle and gearing"
+        },
+        {
+          "area_m2": 17150,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.58,
+            "redundancy_group": "hot-loop",
+            "role": "radiator",
+            "vulnerability": 0.75
+          },
+          "eps": 0.9,
+          "id": "cha-lt-hot-rad",
+          "kind": "radiator_hot",
+          "mw_per_kg": 1.6,
+          "name": "Armored high-temperature radiator",
+          "t_k": 2000.0
+        },
+        {
+          "area_m2": 125000,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.95,
+            "redundancy_group": "low-loop",
+            "role": "radiator",
+            "vulnerability": 1.0
+          },
+          "eps": 0.9,
+          "id": "cha-lt-low-rad",
+          "kind": "radiator_low",
+          "mw_per_kg": 0.0128,
+          "name": "Retractable 700 K laser radiator",
+          "t_k": 700.0
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.22,
+            "redundancy_group": "low-loop",
+            "role": "radiator",
+            "vulnerability": 0.8
+          },
+          "id": "cha-lt-sink",
+          "kind": "heat_sink",
+          "li_t": 400,
+          "mass_t": 440,
+          "name": "Lithium phase-change sink"
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.28,
+            "redundancy_group": "weapon-power",
+            "role": "power",
+            "vulnerability": 0.8
+          },
+          "id": "cha-lt-fly",
+          "kind": "flywheel",
+          "mass_t": 30,
+          "name": "CNT flywheel banks"
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.5,
+            "redundancy_group": "tankage",
+            "role": "drive",
+            "vulnerability": 0.65
+          },
+          "id": "cha-lt-tank",
+          "kind": "tank",
+          "mass_t": 960,
+          "name": "Metallic-hydrogen tankage"
+        },
+        {
+          "aperture_m": 15,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "spinal",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "cha-lt-main",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 650,
+          "name": "15 m primary array",
+          "p_beam_w": 500000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 3,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "pdl",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "cha-lt-pdl-1",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 100,
+          "name": "3 m PDL cluster 1",
+          "p_beam_w": 150000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "aperture_m": 3,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.6,
+            "redundancy_group": "pdl",
+            "role": "weapon",
+            "vulnerability": 1.0
+          },
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "cha-lt-pdl-2",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 100,
+          "name": "3 m PDL cluster 2",
+          "p_beam_w": 150000000.0,
+          "profiles": [
+            {
+              "id": "missile-kill",
+              "material": "Ti-C hybrid (missile hull)",
+              "name": "Torplet structural kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10.0
+            },
+            {
+              "id": "ship-radiator-kill",
+              "material": "Radiator panel (C-C)",
+              "name": "Ship radiator ablation",
+              "t_pulse_s": 0.5,
+              "threshold_mm": 10.0
+            }
+          ],
+          "t_pulse_s": 0.1
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.82,
+            "redundancy_group": "sensors",
+            "role": "sensor",
+            "vulnerability": 0.9
+          },
+          "id": "cha-lt-sensors",
+          "kind": "sensor_lidar",
+          "mass_t": 40,
+          "name": "Cooperative picket sensor suite"
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.78,
+            "redundancy_group": "sensors",
+            "role": "sensor",
+            "vulnerability": 1.0
+          },
+          "id": "cha-lt-ewar",
+          "kind": "sensor_ewar",
+          "mass_t": 80,
+          "name": "Local dazzle and chaff control"
+        },
+        {
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 1.0,
+            "redundancy_group": "structure",
+            "role": "armor",
+            "vulnerability": 0.5
+          },
+          "id": "cha-lt-armor",
+          "kind": "armor",
+          "mass_t": 400,
+          "name": "Whipple and local armor"
+        },
+        {
+          "capacity": 6,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.28,
+            "redundancy_group": "ordnance",
+            "role": "magazine",
+            "vulnerability": 0.9
+          },
+          "id": "cha-lt-mag-sickle",
+          "kind": "magazine",
+          "mass_t": 50,
+          "missile_id": "sickle",
+          "name": "SICKLE cells"
+        },
+        {
+          "capacity": 60,
+          "combat": {
+            "degraded_at": 0.7,
+            "destroyed_at": 0.05,
+            "disabled_at": 0.25,
+            "exposure": 0.28,
+            "redundancy_group": "ordnance",
+            "role": "magazine",
+            "vulnerability": 0.9
+          },
+          "id": "cha-lt-mag-int",
+          "kind": "magazine",
+          "mass_t": 50,
+          "missile_id": "interceptor",
+          "name": "Counter-missile cells"
+        }
+      ],
+      "id": "cha-light",
+      "mr": 4.0,
+      "name": "Chanduran light escort bracket",
+      "note": "PROVISIONAL Chanduran estimate. Ten hulls plus two heavies and CATHEDRAL close the 13-contact roster.",
+      "structure_auto": false,
+      "structure_t": 3297.596958515625
+    }
+  ],
+  "events": [],
+  "materials": [
+    {
+      "e_vap_mj": 13.6,
+      "name": "Aluminum",
+      "rho": 2700
+    },
+    {
+      "e_vap_mj": 8.2,
+      "name": "Steel",
+      "rho": 7850
+    },
+    {
+      "e_vap_mj": 11.2,
+      "name": "Titanium",
+      "rho": 4500
+    },
+    {
+      "e_vap_mj": 35,
+      "name": "Ti-C hybrid (missile hull)",
+      "rho": 4000
+    },
+    {
+      "e_vap_mj": 43,
+      "name": "Carbon composite",
+      "rho": 1600
+    },
+    {
+      "e_vap_mj": 55,
+      "name": "CNT composite",
+      "rho": 1300
+    },
+    {
+      "e_vap_mj": 59.5,
+      "name": "Radiator panel (C-C)",
+      "rho": 1800
+    },
+    {
+      "e_vap_mj": 6,
+      "name": "Tungsten (radiator)",
+      "rho": 19300
+    },
+    {
+      "e_vap_mj": 14,
+      "name": "Rock/regolith",
+      "rho": 2700
+    },
+    {
+      "e_vap_mj": 3,
+      "name": "Water ice",
+      "rho": 920
+    }
+  ],
+  "missiles": [
+    {
+      "default_phases": [
+        {
+          "coast_to_range_m": 20000000.0,
+          "prop_frac": 1.0,
+          "stage_id": "javelin-bus"
+        }
+      ],
+      "id": "javelin",
+      "name": "Javelin 12 t six-torplet bus",
+      "note": "missiles_v2 Javelin: six 25 kg-dry torplets at 30 km/s; Casaba effect is a transparent combat calibration proxy.",
+      "payload_kg": 904.0,
+      "stages": [
+        {
+          "a0_g": 1.0,
+          "dry_mass_kg": 1839.0,
+          "id": "javelin-bus",
+          "jettison": false,
+          "name": "Fusion-heated MH bus",
+          "propellant_kg": 9257.0,
+          "propulsion": "custom",
+          "ve_m_s": 92000.0
+        }
+      ],
+      "terminal_effect": {
+        "accuracy_sigma_m": 50.0,
+        "component_bias": {
+          "drive": 1.2,
+          "magazine": 1.0,
+          "radiator": 1.2,
+          "sensor": 1.5,
+          "structure": 1.0,
+          "weapon": 1.5
+        },
+        "effect_energy_j": 6000000000000.0
+      }
+    },
+    {
+      "default_phases": [
+        {
+          "coast_to_range_m": 20000000.0,
+          "prop_frac": 1.0,
+          "stage_id": "sickle-bus"
+        }
+      ],
+      "id": "sickle",
+      "name": "SICKLE 27 t eight-torplet Lancer bracket",
+      "note": "Physical design uses missiles_v2 Lancer: eight 50 kg-dry torplets at 36 km/s. SICKLE label/inventory are scenario assumptions.",
+      "payload_kg": 3454.0,
+      "stages": [
+        {
+          "a0_g": 1.25,
+          "dry_mass_kg": 6184.0,
+          "id": "sickle-bus",
+          "jettison": false,
+          "name": "Fusion-heated MH bus",
+          "propellant_kg": 17362.0,
+          "propulsion": "custom",
+          "ve_m_s": 137000.0
+        }
+      ],
+      "terminal_effect": {
+        "accuracy_sigma_m": 35.0,
+        "component_bias": {
+          "drive": 1.2,
+          "magazine": 1.0,
+          "radiator": 1.2,
+          "sensor": 1.4,
+          "structure": 1.0,
+          "weapon": 1.4
+        },
+        "effect_energy_j": 8000000000000.0
+      }
+    },
+    {
+      "default_phases": [
+        {
+          "coast_to_range_m": null,
+          "prop_frac": 1.0,
+          "stage_id": "interceptor-stage"
+        }
+      ],
+      "id": "interceptor",
+      "name": "200 kg MH kinetic counter-missile",
+      "note": "Underconstrained defensive round retained as a conservative calculator baseline; the combat v1 resolver does not launch interceptor magazines explicitly.",
+      "payload_kg": 0.0,
+      "stages": [
+        {
+          "a0_g": 15.0,
+          "dry_mass_kg": 25.0,
+          "id": "interceptor-stage",
+          "jettison": false,
+          "name": "MH sprint stage",
+          "propellant_kg": 175.0,
+          "propulsion": "mh"
+        }
+      ],
+      "terminal_effect": {
+        "accuracy_sigma_m": 5.0,
+        "component_bias": {},
+        "effect_energy_j": 0.0
+      }
+    }
+  ],
+  "schema_version": 2,
+  "settings": {
+    "as_flywheel_fire_s": 30,
+    "as_hot_eps": 0.9,
+    "as_hot_mw_per_kg": 0.326592,
+    "as_hot_t_k": 2000,
+    "as_low_area_frac": 0.25,
+    "as_low_eps": 0.9,
+    "as_low_mw_per_kg": 0.0128,
+    "as_low_t_k": 700.0,
+    "as_nozzle_cap_factor": 10,
+    "as_nozzle_t_per_mn": 30,
+    "as_rad_load_frac": 0.01,
+    "as_reactor_t_per_tw": 750,
+    "as_sink_endurance_min": 30,
+    "as_sink_extra_mass_factor": 1.1,
+    "as_structure_frac": 0.08,
+    "as_target_accel_mg": 5,
+    "c_m_s": 299792458,
+    "eta_drill": 0.5,
+    "eta_noz": 0.85,
+    "f_exh": 0.753,
+    "flywheel_mj_per_t": 9000,
+    "g": 9.81,
+    "g_const": 6.674e-11,
+    "kill_threshold_mm": 10,
+    "laser_cutoff_mm_s": 0.5,
+    "laser_eta_wall": 0.15,
+    "li_sink_mj_per_kg": 0.432,
+    "li_vent_mj_per_kg": 19.6,
+    "map_project_d": 2.5,
+    "map_substep_s": 60,
+    "map_tick_s": 3600,
+    "open_fire_factor": 1.5,
+    "prop_am_isp_s": 3000,
+    "prop_fusion_isp_s": 20000,
+    "prop_mh_ve_m_s": 16700,
+    "pulse_missile_s": 0.1,
+    "pulse_ship_s": 0.5,
+    "sigma": 5.67e-8,
+    "tank_prop_per_mass": 25,
+    "ve_gear_min_m_s": 21000,
+    "ve_max_m_s": 2300000
+  },
+  "states": [
+    {
+      "design_id": "sol-battleship",
+      "flywheel_mj": 900000,
+      "id": "tiberius",
+      "magazines": {
+        "sol-bb-mag-int": 400,
+        "sol-bb-mag-jav": 48
+      },
+      "name": "BB-013 Tiberius",
+      "propellant_t": 225000,
+      "radiator_hot_pct": 100.0,
+      "radiator_low_pct": 100.0,
+      "sink_capacity_mj": 2160000,
+      "sink_mj": 0.0,
+      "velocity_kms": 0.0
+    },
+    {
+      "design_id": "sol-missile-carrier",
+      "flywheel_mj": 450000,
+      "id": "lunas-dream",
+      "magazines": {
+        "sol-mc-mag-int": 200,
+        "sol-mc-mag-jav": 600
+      },
+      "name": "Luna's Dream",
+      "propellant_t": 137500,
+      "radiator_hot_pct": 100.0,
+      "radiator_low_pct": 100.0,
+      "sink_capacity_mj": 864000,
+      "sink_mj": 0.0,
+      "velocity_kms": 0.0
+    },
+    {
+      "design_id": "sol-drone-carrier",
+      "flywheel_mj": 450000,
+      "id": "bonaparte",
+      "magazines": {
+        "sol-dc-mag-int": 200,
+        "sol-dc-mag-jav": 24
+      },
+      "name": "Bonaparte",
+      "propellant_t": 125000,
+      "radiator_hot_pct": 100.0,
+      "radiator_low_pct": 100.0,
+      "sink_capacity_mj": 432000,
+      "sink_mj": 0.0,
+      "velocity_kms": 0.0
+    },
+    {
+      "design_id": "sol-corvette",
+      "flywheel_mj": 180000,
+      "id": "sahara-cv-01",
+      "magazines": {
+        "sol-cv-mag-int": 40,
+        "sol-cv-mag-jav": 24
+      },
+      "name": "Shinobi's Pride",
+      "propellant_t": 7500,
+      "radiator_hot_pct": 100.0,
+      "radiator_low_pct": 100.0,
+      "sink_capacity_mj": 108000,
+      "sink_mj": 0.0,
+      "velocity_kms": 0.0
+    },
+    {
+      "design_id": "sol-corvette",
+      "flywheel_mj": 180000,
+      "id": "sahara-cv-02",
+      "magazines": {
+        "sol-cv-mag-int": 40,
+        "sol-cv-mag-jav": 24
+      },
+      "name": "Cheyenne",
+      "propellant_t": 7500,
+      "radiator_hot_pct": 100.0,
+      "radiator_low_pct": 100.0,
+      "sink_capacity_mj": 108000,
+      "sink_mj": 0.0,
+      "velocity_kms": 0.0
+    },
+    {
+      "design_id": "sol-corvette",
+      "flywheel_mj": 180000,
+      "id": "sahara-cv-03",
+      "magazines": {
+        "sol-cv-mag-int": 40,
+        "sol-cv-mag-jav": 24
+      },
+      "name": "Quarrel",
+      "propellant_t": 7500,
+      "radiator_hot_pct": 100.0,
+      "radiator_low_pct": 100.0,
+      "sink_capacity_mj": 108000,
+      "sink_mj": 0.0,
+      "velocity_kms": 0.0
+    },
+    {
+      "design_id": "sol-corvette",
+      "flywheel_mj": 180000,
+      "id": "sahara-cv-04",
+      "magazines": {
+        "sol-cv-mag-int": 40,
+        "sol-cv-mag-jav": 24
+      },
+      "name": "Tin Rose",
+      "propellant_t": 7500,
+      "radiator_hot_pct": 100.0,
+      "radiator_low_pct": 100.0,
+      "sink_capacity_mj": 108000,
+      "sink_mj": 0.0,
+      "velocity_kms": 0.0
+    },
+    {
+      "design_id": "sol-corvette",
+      "flywheel_mj": 180000,
+      "id": "sahara-cv-05",
+      "magazines": {
+        "sol-cv-mag-int": 40,
+        "sol-cv-mag-jav": 24
+      },
+      "name": "Castellan",
+      "propellant_t": 7500,
+      "radiator_hot_pct": 100.0,
+      "radiator_low_pct": 100.0,
+      "sink_capacity_mj": 108000,
+      "sink_mj": 0.0,
+      "velocity_kms": 0.0
+    },
+    {
+      "design_id": "sol-corvette",
+      "flywheel_mj": 180000,
+      "id": "sahara-cv-06",
+      "magazines": {
+        "sol-cv-mag-int": 40,
+        "sol-cv-mag-jav": 24
+      },
+      "name": "Marat",
+      "propellant_t": 7500,
+      "radiator_hot_pct": 100.0,
+      "radiator_low_pct": 100.0,
+      "sink_capacity_mj": 108000,
+      "sink_mj": 0.0,
+      "velocity_kms": 0.0
+    },
+    {
+      "design_id": "sol-corvette",
+      "flywheel_mj": 180000,
+      "id": "sahara-cv-07",
+      "magazines": {
+        "sol-cv-mag-int": 40,
+        "sol-cv-mag-jav": 24
+      },
+      "name": "Pilar",
+      "propellant_t": 7500,
+      "radiator_hot_pct": 100.0,
+      "radiator_low_pct": 100.0,
+      "sink_capacity_mj": 108000,
+      "sink_mj": 0.0,
+      "velocity_kms": 0.0
+    },
+    {
+      "design_id": "sol-corvette",
+      "flywheel_mj": 180000,
+      "id": "sahara-cv-08",
+      "magazines": {
+        "sol-cv-mag-int": 40,
+        "sol-cv-mag-jav": 24
+      },
+      "name": "Sable",
+      "propellant_t": 7500,
+      "radiator_hot_pct": 100.0,
+      "radiator_low_pct": 100.0,
+      "sink_capacity_mj": 108000,
+      "sink_mj": 0.0,
+      "velocity_kms": 0.0
+    },
+    {
+      "design_id": "sol-corvette",
+      "flywheel_mj": 180000,
+      "id": "sahara-cv-09",
+      "magazines": {
+        "sol-cv-mag-int": 40,
+        "sol-cv-mag-jav": 24
+      },
+      "name": "Long Odds",
+      "propellant_t": 7500,
+      "radiator_hot_pct": 100.0,
+      "radiator_low_pct": 100.0,
+      "sink_capacity_mj": 108000,
+      "sink_mj": 0.0,
+      "velocity_kms": 0.0
+    },
+    {
+      "design_id": "sol-corvette",
+      "flywheel_mj": 180000,
+      "id": "sahara-cv-10",
+      "magazines": {
+        "sol-cv-mag-int": 40,
+        "sol-cv-mag-jav": 24
+      },
+      "name": "Dry Run",
+      "propellant_t": 7500,
+      "radiator_hot_pct": 100.0,
+      "radiator_low_pct": 100.0,
+      "sink_capacity_mj": 108000,
+      "sink_mj": 0.0,
+      "velocity_kms": 0.0
+    },
+    {
+      "design_id": "sol-corvette",
+      "flywheel_mj": 180000,
+      "id": "sahara-cv-11",
+      "magazines": {
+        "sol-cv-mag-int": 40,
+        "sol-cv-mag-jav": 24
+      },
+      "name": "Vagrant",
+      "propellant_t": 7500,
+      "radiator_hot_pct": 100.0,
+      "radiator_low_pct": 100.0,
+      "sink_capacity_mj": 108000,
+      "sink_mj": 0.0,
+      "velocity_kms": 0.0
+    },
+    {
+      "design_id": "sol-corvette",
+      "flywheel_mj": 180000,
+      "id": "sahara-cv-12",
+      "magazines": {
+        "sol-cv-mag-int": 40,
+        "sol-cv-mag-jav": 24
+      },
+      "name": "Kestrel",
+      "propellant_t": 7500,
+      "radiator_hot_pct": 100.0,
+      "radiator_low_pct": 100.0,
+      "sink_capacity_mj": 108000,
+      "sink_mj": 0.0,
+      "velocity_kms": 0.0
+    },
+    {
+      "design_id": "sol-corvette",
+      "flywheel_mj": 180000,
+      "id": "sahara-cv-13",
+      "magazines": {
+        "sol-cv-mag-int": 40,
+        "sol-cv-mag-jav": 24
+      },
+      "name": "Halfpenny",
+      "propellant_t": 7500,
+      "radiator_hot_pct": 100.0,
+      "radiator_low_pct": 100.0,
+      "sink_capacity_mj": 108000,
+      "sink_mj": 0.0,
+      "velocity_kms": 0.0
+    },
+    {
+      "design_id": "sol-corvette",
+      "flywheel_mj": 180000,
+      "id": "sahara-cv-14",
+      "magazines": {
+        "sol-cv-mag-int": 40,
+        "sol-cv-mag-jav": 24
+      },
+      "name": "Sahara-14",
+      "propellant_t": 7500,
+      "radiator_hot_pct": 100.0,
+      "radiator_low_pct": 100.0,
+      "sink_capacity_mj": 108000,
+      "sink_mj": 0.0,
+      "velocity_kms": 0.0
+    },
+    {
+      "design_id": "sol-corvette",
+      "flywheel_mj": 180000,
+      "id": "sahara-cv-15",
+      "magazines": {
+        "sol-cv-mag-int": 40,
+        "sol-cv-mag-jav": 24
+      },
+      "name": "Sahara-15",
+      "propellant_t": 7500,
+      "radiator_hot_pct": 100.0,
+      "radiator_low_pct": 100.0,
+      "sink_capacity_mj": 108000,
+      "sink_mj": 0.0,
+      "velocity_kms": 0.0
+    },
+    {
+      "design_id": "cha-lasestar",
+      "flywheel_mj": 2250000,
+      "id": "cathedral",
+      "magazines": {
+        "cha-ls-mag-int": 800,
+        "cha-ls-mag-sickle": 40
+      },
+      "name": "CATHEDRAL",
+      "propellant_t": 360000,
+      "radiator_hot_pct": 100.0,
+      "radiator_low_pct": 100.0,
+      "sink_capacity_mj": 4320000,
+      "sink_mj": 0.0,
+      "velocity_kms": 0.0
+    },
+    {
+      "design_id": "cha-heavy",
+      "flywheel_mj": 720000,
+      "id": "epsilon-heavy-1",
+      "magazines": {
+        "cha-hv-mag-int": 240,
+        "cha-hv-mag-sickle": 32
+      },
+      "name": "Bogey Epsilon heavy 1",
+      "propellant_t": 70000,
+      "radiator_hot_pct": 100.0,
+      "radiator_low_pct": 100.0,
+      "sink_capacity_mj": 864000,
+      "sink_mj": 0.0,
+      "velocity_kms": 0.0
+    },
+    {
+      "design_id": "cha-heavy",
+      "flywheel_mj": 720000,
+      "id": "epsilon-heavy-2",
+      "magazines": {
+        "cha-hv-mag-int": 240,
+        "cha-hv-mag-sickle": 32
+      },
+      "name": "Bogey Epsilon heavy 2",
+      "propellant_t": 70000,
+      "radiator_hot_pct": 100.0,
+      "radiator_low_pct": 100.0,
+      "sink_capacity_mj": 864000,
+      "sink_mj": 0.0,
+      "velocity_kms": 0.0
+    },
+    {
+      "design_id": "cha-light",
+      "flywheel_mj": 270000,
+      "id": "epsilon-light-01",
+      "magazines": {
+        "cha-lt-mag-int": 60,
+        "cha-lt-mag-sickle": 6
+      },
+      "name": "Bogey Epsilon light 1",
+      "propellant_t": 12000,
+      "radiator_hot_pct": 100.0,
+      "radiator_low_pct": 100.0,
+      "sink_capacity_mj": 172800,
+      "sink_mj": 0.0,
+      "velocity_kms": 0.0
+    },
+    {
+      "design_id": "cha-light",
+      "flywheel_mj": 270000,
+      "id": "epsilon-light-02",
+      "magazines": {
+        "cha-lt-mag-int": 60,
+        "cha-lt-mag-sickle": 6
+      },
+      "name": "Bogey Epsilon light 2",
+      "propellant_t": 12000,
+      "radiator_hot_pct": 100.0,
+      "radiator_low_pct": 100.0,
+      "sink_capacity_mj": 172800,
+      "sink_mj": 0.0,
+      "velocity_kms": 0.0
+    },
+    {
+      "design_id": "cha-light",
+      "flywheel_mj": 270000,
+      "id": "epsilon-light-03",
+      "magazines": {
+        "cha-lt-mag-int": 60,
+        "cha-lt-mag-sickle": 6
+      },
+      "name": "Bogey Epsilon light 3",
+      "propellant_t": 12000,
+      "radiator_hot_pct": 100.0,
+      "radiator_low_pct": 100.0,
+      "sink_capacity_mj": 172800,
+      "sink_mj": 0.0,
+      "velocity_kms": 0.0
+    },
+    {
+      "design_id": "cha-light",
+      "flywheel_mj": 270000,
+      "id": "epsilon-light-04",
+      "magazines": {
+        "cha-lt-mag-int": 60,
+        "cha-lt-mag-sickle": 6
+      },
+      "name": "Bogey Epsilon light 4",
+      "propellant_t": 12000,
+      "radiator_hot_pct": 100.0,
+      "radiator_low_pct": 100.0,
+      "sink_capacity_mj": 172800,
+      "sink_mj": 0.0,
+      "velocity_kms": 0.0
+    },
+    {
+      "design_id": "cha-light",
+      "flywheel_mj": 270000,
+      "id": "epsilon-light-05",
+      "magazines": {
+        "cha-lt-mag-int": 60,
+        "cha-lt-mag-sickle": 6
+      },
+      "name": "Bogey Epsilon light 5",
+      "propellant_t": 12000,
+      "radiator_hot_pct": 100.0,
+      "radiator_low_pct": 100.0,
+      "sink_capacity_mj": 172800,
+      "sink_mj": 0.0,
+      "velocity_kms": 0.0
+    },
+    {
+      "design_id": "cha-light",
+      "flywheel_mj": 270000,
+      "id": "epsilon-light-06",
+      "magazines": {
+        "cha-lt-mag-int": 60,
+        "cha-lt-mag-sickle": 6
+      },
+      "name": "Bogey Epsilon light 6",
+      "propellant_t": 12000,
+      "radiator_hot_pct": 100.0,
+      "radiator_low_pct": 100.0,
+      "sink_capacity_mj": 172800,
+      "sink_mj": 0.0,
+      "velocity_kms": 0.0
+    },
+    {
+      "design_id": "cha-light",
+      "flywheel_mj": 270000,
+      "id": "epsilon-light-07",
+      "magazines": {
+        "cha-lt-mag-int": 60,
+        "cha-lt-mag-sickle": 6
+      },
+      "name": "Bogey Epsilon light 7",
+      "propellant_t": 12000,
+      "radiator_hot_pct": 100.0,
+      "radiator_low_pct": 100.0,
+      "sink_capacity_mj": 172800,
+      "sink_mj": 0.0,
+      "velocity_kms": 0.0
+    },
+    {
+      "design_id": "cha-light",
+      "flywheel_mj": 270000,
+      "id": "epsilon-light-08",
+      "magazines": {
+        "cha-lt-mag-int": 60,
+        "cha-lt-mag-sickle": 6
+      },
+      "name": "Bogey Epsilon light 8",
+      "propellant_t": 12000,
+      "radiator_hot_pct": 100.0,
+      "radiator_low_pct": 100.0,
+      "sink_capacity_mj": 172800,
+      "sink_mj": 0.0,
+      "velocity_kms": 0.0
+    },
+    {
+      "design_id": "cha-light",
+      "flywheel_mj": 270000,
+      "id": "epsilon-light-09",
+      "magazines": {
+        "cha-lt-mag-int": 60,
+        "cha-lt-mag-sickle": 6
+      },
+      "name": "Bogey Epsilon light 9",
+      "propellant_t": 12000,
+      "radiator_hot_pct": 100.0,
+      "radiator_low_pct": 100.0,
+      "sink_capacity_mj": 172800,
+      "sink_mj": 0.0,
+      "velocity_kms": 0.0
+    },
+    {
+      "design_id": "cha-light",
+      "flywheel_mj": 270000,
+      "id": "epsilon-light-10",
+      "magazines": {
+        "cha-lt-mag-int": 60,
+        "cha-lt-mag-sickle": 6
+      },
+      "name": "Bogey Epsilon light 10",
+      "propellant_t": 12000,
+      "radiator_hot_pct": 100.0,
+      "radiator_low_pct": 100.0,
+      "sink_capacity_mj": 172800,
+      "sink_mj": 0.0,
+      "velocity_kms": 0.0
+    }
+  ],
+  "system": {
+    "bodies": [
+      {
+        "id": "sol",
+        "mass_kg": 1.9885e+30,
+        "name": "Sol",
+        "radius_m": 695700000
+      },
+      {
+        "a_m": 57909000000,
+        "id": "mercury",
+        "mass_kg": 3.3011e+23,
+        "name": "Mercury",
+        "parent": "sol",
+        "phase0_deg": 252.3,
+        "radius_m": 2439700
+      },
+      {
+        "a_m": 108209000000,
+        "id": "venus",
+        "mass_kg": 4.8675e+24,
+        "name": "Venus",
+        "parent": "sol",
+        "phase0_deg": 182,
+        "radius_m": 6051800
+      },
+      {
+        "a_m": 149598000000,
+        "id": "earth",
+        "mass_kg": 5.97237e+24,
+        "name": "Earth",
+        "parent": "sol",
+        "phase0_deg": 100.5,
+        "radius_m": 6371000
+      },
+      {
+        "a_m": 384400000,
+        "id": "luna",
+        "mass_kg": 7.342e+22,
+        "name": "Luna",
+        "parent": "earth",
+        "phase0_deg": 0,
+        "radius_m": 1737400
+      },
+      {
+        "a_m": 227939000000,
+        "id": "mars",
+        "mass_kg": 6.4171e+23,
+        "name": "Mars",
+        "parent": "sol",
+        "phase0_deg": 355.5,
+        "radius_m": 3389500
+      },
+      {
+        "a_m": 778570000000,
+        "id": "jupiter",
+        "mass_kg": 1.8982e+27,
+        "name": "Jupiter",
+        "parent": "sol",
+        "phase0_deg": 34.4,
+        "radius_m": 69911000
+      },
+      {
+        "a_m": 1433530000000,
+        "id": "saturn",
+        "mass_kg": 5.6834e+26,
+        "name": "Saturn",
+        "parent": "sol",
+        "phase0_deg": 50,
+        "radius_m": 58232000
+      },
+      {
+        "a_m": 2872460000000,
+        "id": "uranus",
+        "mass_kg": 8.681e+25,
+        "name": "Uranus",
+        "parent": "sol",
+        "phase0_deg": 313.2,
+        "radius_m": 25362000
+      },
+      {
+        "a_m": 4495060000000,
+        "id": "neptune",
+        "mass_kg": 1.02413e+26,
+        "name": "Neptune",
+        "parent": "sol",
+        "phase0_deg": 304.9,
+        "radius_m": 24622000
+      },
+      {
+        "a_m": 421700000,
+        "id": "io",
+        "mass_kg": 8.9319e+22,
+        "name": "Io",
+        "parent": "jupiter",
+        "phase0_deg": 0,
+        "radius_m": 1821600
+      },
+      {
+        "a_m": 670900000,
+        "id": "europa",
+        "mass_kg": 4.7998e+22,
+        "name": "Europa",
+        "parent": "jupiter",
+        "phase0_deg": 90,
+        "radius_m": 1560800
+      },
+      {
+        "a_m": 1070400000,
+        "id": "ganymede",
+        "mass_kg": 1.4819e+23,
+        "name": "Ganymede",
+        "parent": "jupiter",
+        "phase0_deg": 180,
+        "radius_m": 2634100
+      },
+      {
+        "a_m": 1882700000,
+        "id": "callisto",
+        "mass_kg": 1.0759e+23,
+        "name": "Callisto",
+        "parent": "jupiter",
+        "phase0_deg": 270,
+        "radius_m": 2410300
+      }
+    ],
+    "epoch_s": 447360000,
+    "nav": {}
+  }
+}

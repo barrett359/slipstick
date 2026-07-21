@@ -1,0 +1,10 @@
+{
+  "command": "calculate intercept",
+  "case": "200 kg MH interceptor vs 138 km/s inbound at 144,000 km",
+  "hit": true,
+  "t_hit_s": 846.903069994305,
+  "burn_time_s": 99.30343187223922,
+  "delta_v_m_s": 34726.67374605326,
+  "relative_closing_at_merge_m_s": 172726.67374605327,
+  "merge_range_from_defender_m": 27127376.340785913
+}

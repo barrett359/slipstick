@@ -1,0 +1,10 @@
+{
+  "command": "calculate intercept",
+  "case": "Javelin from rest across 175,000 km",
+  "hit": true,
+  "t_hit_s": 5297.859653294674,
+  "flight_minutes": 88.29766088824456,
+  "v_terminal_m_s": 76563.26919165796,
+  "dv_spent_m_s": 76563.26919165796,
+  "phase": "powered"
+}

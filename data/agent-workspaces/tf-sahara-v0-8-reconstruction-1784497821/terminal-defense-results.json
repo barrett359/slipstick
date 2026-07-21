@@ -1,0 +1,429 @@
+{
+  "model": "Lasers_v3 range-gated integral of constant-range Lidar/PD snapshots",
+  "closure_m_s": 138000.0,
+  "standoff_m": 50000.0,
+  "important_limitations": [
+    "Capacities are scheduling bounds, not canonical kills.",
+    "Each layer assumes an unlimited queue of valid target associations.",
+    "One aligned jammer is applied independently to every serviced target.",
+    "Chaff, decoys, false associations, shared target queues, heat depletion, battle damage, interceptors, and kill confirmation beyond the configured 50 ms reacquisition are not coupled.",
+    "Summing layers assumes perfect fleet scheduling with no duplicated target service."
+  ],
+  "cases": [
+    {
+      "case": "clean_dedicated_1m",
+      "total_capacity_upper_bound": 9330.230011134707,
+      "layers": [
+        {
+          "layer": "BB main concentrated",
+          "capacity": 741.6677012592415,
+          "single_channel_capacity": 741.6677012592415,
+          "channels": 1,
+          "installed": 1,
+          "first_feasible_range_m": 9901041.666666666,
+          "integrated_seconds": 68.84057971014497,
+          "max_jammer_to_signal": 0.0,
+          "service_includes_fixed_slew_s": 0.05
+        },
+        {
+          "layer": "BB main terminal groups",
+          "capacity": 357.12133214271216,
+          "single_channel_capacity": 35.71213321427122,
+          "channels": 10,
+          "installed": 1,
+          "first_feasible_range_m": 495312.5,
+          "integrated_seconds": 3.192934782608697,
+          "max_jammer_to_signal": 0.0,
+          "service_includes_fixed_slew_s": 0.05
+        },
+        {
+          "layer": "BB secondaries concentrated",
+          "capacity": 777.6122600069414,
+          "single_channel_capacity": 129.60204333449022,
+          "channels": 1,
+          "installed": 6,
+          "first_feasible_range_m": 2973958.3333333335,
+          "integrated_seconds": 18.115942028985515,
+          "max_jammer_to_signal": 0.0,
+          "service_includes_fixed_slew_s": 0.05
+        },
+        {
+          "layer": "BB secondary terminal groups",
+          "capacity": 535.0450181507036,
+          "single_channel_capacity": 22.293542422945986,
+          "channels": 4,
+          "installed": 6,
+          "first_feasible_range_m": 495312.5,
+          "integrated_seconds": 3.1250000000000013,
+          "max_jammer_to_signal": 0.0,
+          "service_includes_fixed_slew_s": 0.05
+        },
+        {
+          "layer": "Corvette spinals concentrated",
+          "capacity": 3813.3827118775116,
+          "single_channel_capacity": 254.22551412516745,
+          "channels": 1,
+          "installed": 15,
+          "first_feasible_range_m": 2973958.3333333335,
+          "integrated_seconds": 18.115942028985515,
+          "max_jammer_to_signal": 0.0,
+          "service_includes_fixed_slew_s": 0.05
+        },
+        {
+          "layer": "Corvette spinal terminal groups",
+          "capacity": 2400.7560978876763,
+          "single_channel_capacity": 32.01008130516902,
+          "channels": 5,
+          "installed": 15,
+          "first_feasible_range_m": 495312.5,
+          "integrated_seconds": 3.192934782608697,
+          "max_jammer_to_signal": 0.0,
+          "service_includes_fixed_slew_s": 0.05
+        },
+        {
+          "layer": "Standard PDL clusters",
+          "capacity": 704.6448898099196,
+          "single_channel_capacity": 14.092897796198391,
+          "channels": 1,
+          "installed": 50,
+          "first_feasible_range_m": 297395.8333333333,
+          "integrated_seconds": 1.6983695652173914,
+          "max_jammer_to_signal": 0.0,
+          "service_includes_fixed_slew_s": 0.05
+        }
+      ]
+    },
+    {
+      "case": "aligned_100W_dedicated_1m",
+      "total_capacity_upper_bound": 6529.641158634408,
+      "layers": [
+        {
+          "layer": "BB main concentrated",
+          "capacity": 235.20685205360869,
+          "single_channel_capacity": 235.20685205360869,
+          "channels": 1,
+          "installed": 1,
+          "first_feasible_range_m": 8119791.666666667,
+          "integrated_seconds": 55.932971014492786,
+          "max_jammer_to_signal": 10690.76717074925,
+          "service_includes_fixed_slew_s": 0.05
+        },
+        {
+          "layer": "BB main terminal groups",
+          "capacity": 295.746496182726,
+          "single_channel_capacity": 29.574649618272602,
+          "channels": 10,
+          "installed": 1,
+          "first_feasible_range_m": 495312.5,
+          "integrated_seconds": 3.192934782608697,
+          "max_jammer_to_signal": 329.6561278203549,
+          "service_includes_fixed_slew_s": 0.05
+        },
+        {
+          "layer": "BB secondaries concentrated",
+          "capacity": 536.5873192689004,
+          "single_channel_capacity": 89.43121987815006,
+          "channels": 1,
+          "installed": 6,
+          "first_feasible_range_m": 2973958.3333333335,
+          "integrated_seconds": 18.115942028985515,
+          "max_jammer_to_signal": 964.6365636775478,
+          "service_includes_fixed_slew_s": 0.05
+        },
+        {
+          "layer": "BB secondary terminal groups",
+          "capacity": 503.36605354880163,
+          "single_channel_capacity": 20.9735855645334,
+          "channels": 4,
+          "installed": 6,
+          "first_feasible_range_m": 495312.5,
+          "integrated_seconds": 3.1250000000000013,
+          "max_jammer_to_signal": 329.6561278203549,
+          "service_includes_fixed_slew_s": 0.05
+        },
+        {
+          "layer": "Corvette spinals concentrated",
+          "capacity": 2177.165398702872,
+          "single_channel_capacity": 145.14435991352482,
+          "channels": 1,
+          "installed": 15,
+          "first_feasible_range_m": 2973958.3333333335,
+          "integrated_seconds": 18.115942028985515,
+          "max_jammer_to_signal": 964.6365636775478,
+          "service_includes_fixed_slew_s": 0.05
+        },
+        {
+          "layer": "Corvette spinal terminal groups",
+          "capacity": 2076.9243779462968,
+          "single_channel_capacity": 27.692325039283958,
+          "channels": 5,
+          "installed": 15,
+          "first_feasible_range_m": 495312.5,
+          "integrated_seconds": 3.192934782608697,
+          "max_jammer_to_signal": 329.6561278203549,
+          "service_includes_fixed_slew_s": 0.05
+        },
+        {
+          "layer": "Standard PDL clusters",
+          "capacity": 704.6446609312031,
+          "single_channel_capacity": 14.092893218624063,
+          "channels": 1,
+          "installed": 50,
+          "first_feasible_range_m": 297395.8333333333,
+          "integrated_seconds": 1.6983695652173914,
+          "max_jammer_to_signal": 329.65612782035487,
+          "service_includes_fixed_slew_s": 0.05
+        }
+      ]
+    },
+    {
+      "case": "aligned_1kW_dedicated_1m",
+      "total_capacity_upper_bound": 6172.186522056532,
+      "layers": [
+        {
+          "layer": "BB main concentrated",
+          "capacity": 173.97519396350964,
+          "single_channel_capacity": 173.97519396350964,
+          "channels": 1,
+          "installed": 1,
+          "first_feasible_range_m": 5942708.333333334,
+          "integrated_seconds": 40.15700483091789,
+          "max_jammer_to_signal": 106907.67170749253,
+          "service_includes_fixed_slew_s": 0.05
+        },
+        {
+          "layer": "BB main terminal groups",
+          "capacity": 295.6931028928708,
+          "single_channel_capacity": 29.56931028928708,
+          "channels": 10,
+          "installed": 1,
+          "first_feasible_range_m": 495312.5,
+          "integrated_seconds": 3.192934782608697,
+          "max_jammer_to_signal": 3296.561278203549,
+          "service_includes_fixed_slew_s": 0.05
+        },
+        {
+          "layer": "BB secondaries concentrated",
+          "capacity": 493.10088172405835,
+          "single_channel_capacity": 82.18348028734306,
+          "channels": 1,
+          "installed": 6,
+          "first_feasible_range_m": 2973958.3333333335,
+          "integrated_seconds": 18.115942028985515,
+          "max_jammer_to_signal": 9646.365636775481,
+          "service_includes_fixed_slew_s": 0.05
+        },
+        {
+          "layer": "BB secondary terminal groups",
+          "capacity": 503.3413303841465,
+          "single_channel_capacity": 20.97255543267277,
+          "channels": 4,
+          "installed": 6,
+          "first_feasible_range_m": 495312.5,
+          "integrated_seconds": 3.1250000000000013,
+          "max_jammer_to_signal": 3296.561278203549,
+          "service_includes_fixed_slew_s": 0.05
+        },
+        {
+          "layer": "Corvette spinals concentrated",
+          "capacity": 1924.6821669731653,
+          "single_channel_capacity": 128.3121444648777,
+          "channels": 1,
+          "installed": 15,
+          "first_feasible_range_m": 2973958.3333333335,
+          "integrated_seconds": 18.115942028985515,
+          "max_jammer_to_signal": 9646.365636775481,
+          "service_includes_fixed_slew_s": 0.05
+        },
+        {
+          "layer": "Corvette spinal terminal groups",
+          "capacity": 2076.7513415023755,
+          "single_channel_capacity": 27.69001788669834,
+          "channels": 5,
+          "installed": 15,
+          "first_feasible_range_m": 495312.5,
+          "integrated_seconds": 3.192934782608697,
+          "max_jammer_to_signal": 3296.561278203549,
+          "service_includes_fixed_slew_s": 0.05
+        },
+        {
+          "layer": "Standard PDL clusters",
+          "capacity": 704.642504616406,
+          "single_channel_capacity": 14.092850092328119,
+          "channels": 1,
+          "installed": 50,
+          "first_feasible_range_m": 297395.8333333333,
+          "integrated_seconds": 1.6983695652173914,
+          "max_jammer_to_signal": 3296.5612782035487,
+          "service_includes_fixed_slew_s": 0.05
+        }
+      ]
+    },
+    {
+      "case": "aligned_100W_fresh_chaff",
+      "total_capacity_upper_bound": 3468.1423215889477,
+      "layers": [
+        {
+          "layer": "BB main concentrated",
+          "capacity": 54.93891349919257,
+          "single_channel_capacity": 54.93891349919257,
+          "channels": 1,
+          "installed": 1,
+          "first_feasible_range_m": 2578125.0,
+          "integrated_seconds": 15.775966183574877,
+          "max_jammer_to_signal": 224541.7177824466,
+          "service_includes_fixed_slew_s": 0.05
+        },
+        {
+          "layer": "BB main terminal groups",
+          "capacity": 238.5141257152837,
+          "single_channel_capacity": 23.85141257152837,
+          "channels": 10,
+          "installed": 1,
+          "first_feasible_range_m": 495312.5,
+          "integrated_seconds": 3.192934782608697,
+          "max_jammer_to_signal": 17998.614726081116,
+          "service_includes_fixed_slew_s": 0.05
+        },
+        {
+          "layer": "BB secondaries concentrated",
+          "capacity": 77.27180070703442,
+          "single_channel_capacity": 12.878633451172403,
+          "channels": 1,
+          "installed": 6,
+          "first_feasible_range_m": 1932291.6666666665,
+          "integrated_seconds": 10.567632850241553,
+          "max_jammer_to_signal": 52667.371831123455,
+          "service_includes_fixed_slew_s": 0.05
+        },
+        {
+          "layer": "BB secondary terminal groups",
+          "capacity": 370.0136415562622,
+          "single_channel_capacity": 15.417235064844258,
+          "channels": 4,
+          "installed": 6,
+          "first_feasible_range_m": 495312.5,
+          "integrated_seconds": 3.1250000000000013,
+          "max_jammer_to_signal": 17998.614726081116,
+          "service_includes_fixed_slew_s": 0.05
+        },
+        {
+          "layer": "Corvette spinals concentrated",
+          "capacity": 439.9564586517627,
+          "single_channel_capacity": 29.33043057678418,
+          "channels": 1,
+          "installed": 15,
+          "first_feasible_range_m": 2296875.0,
+          "integrated_seconds": 13.209541062801943,
+          "max_jammer_to_signal": 52667.371831123455,
+          "service_includes_fixed_slew_s": 0.05
+        },
+        {
+          "layer": "Corvette spinal terminal groups",
+          "capacity": 1624.9857844732187,
+          "single_channel_capacity": 21.66647712630958,
+          "channels": 5,
+          "installed": 15,
+          "first_feasible_range_m": 495312.5,
+          "integrated_seconds": 3.192934782608697,
+          "max_jammer_to_signal": 17998.614726081116,
+          "service_includes_fixed_slew_s": 0.05
+        },
+        {
+          "layer": "Standard PDL clusters",
+          "capacity": 662.4615969861933,
+          "single_channel_capacity": 13.249231939723865,
+          "channels": 1,
+          "installed": 50,
+          "first_feasible_range_m": 297395.8333333333,
+          "integrated_seconds": 1.6983695652173914,
+          "max_jammer_to_signal": 17998.614726081112,
+          "service_includes_fixed_slew_s": 0.05
+        }
+      ]
+    },
+    {
+      "case": "aligned_100W_weapon_receive",
+      "total_capacity_upper_bound": 6782.317550012556,
+      "layers": [
+        {
+          "layer": "BB main concentrated",
+          "capacity": 450.56629495255436,
+          "single_channel_capacity": 450.56629495255436,
+          "channels": 1,
+          "installed": 1,
+          "first_feasible_range_m": 9901041.666666666,
+          "integrated_seconds": 68.84057971014497,
+          "max_jammer_to_signal": 10690.736907284117,
+          "service_includes_fixed_slew_s": 0.05
+        },
+        {
+          "layer": "BB main terminal groups",
+          "capacity": 295.7516900586597,
+          "single_channel_capacity": 29.57516900586597,
+          "channels": 10,
+          "installed": 1,
+          "first_feasible_range_m": 495312.5,
+          "integrated_seconds": 3.192934782608697,
+          "max_jammer_to_signal": 13.589952714915757,
+          "service_includes_fixed_slew_s": 0.05
+        },
+        {
+          "layer": "BB secondaries concentrated",
+          "capacity": 539.2496094663641,
+          "single_channel_capacity": 89.87493491106068,
+          "channels": 1,
+          "installed": 6,
+          "first_feasible_range_m": 2973958.3333333335,
+          "integrated_seconds": 18.115942028985515,
+          "max_jammer_to_signal": 964.6365636775481,
+          "service_includes_fixed_slew_s": 0.05
+        },
+        {
+          "layer": "BB secondary terminal groups",
+          "capacity": 503.3685015406546,
+          "single_channel_capacity": 20.97368756419394,
+          "channels": 4,
+          "installed": 6,
+          "first_feasible_range_m": 495312.5,
+          "integrated_seconds": 3.1250000000000013,
+          "max_jammer_to_signal": 49.05972930084588,
+          "service_includes_fixed_slew_s": 0.05
+        },
+        {
+          "layer": "Corvette spinals concentrated",
+          "capacity": 2211.795752115593,
+          "single_channel_capacity": 147.45305014103954,
+          "channels": 1,
+          "installed": 15,
+          "first_feasible_range_m": 2973958.3333333335,
+          "integrated_seconds": 18.115942028985515,
+          "max_jammer_to_signal": 575.0377910296035,
+          "service_includes_fixed_slew_s": 0.05
+        },
+        {
+          "layer": "Corvette spinal terminal groups",
+          "capacity": 2076.940812455807,
+          "single_channel_capacity": 27.692544166077433,
+          "channels": 5,
+          "installed": 15,
+          "first_feasible_range_m": 495312.5,
+          "integrated_seconds": 3.192934782608697,
+          "max_jammer_to_signal": 27.322192749412952,
+          "service_includes_fixed_slew_s": 0.05
+        },
+        {
+          "layer": "Standard PDL clusters",
+          "capacity": 704.6448894229235,
+          "single_channel_capacity": 14.092897788458469,
+          "channels": 1,
+          "installed": 50,
+          "first_feasible_range_m": 297395.8333333333,
+          "integrated_seconds": 1.6983695652173914,
+          "max_jammer_to_signal": 49.12853676686771,
+          "service_includes_fixed_slew_s": 0.05
+        }
+      ]
+    }
+  ]
+}

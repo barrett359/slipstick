@@ -1,0 +1,63 @@
+{
+  "range_m": 158000000.0,
+  "weapons": [
+    {
+      "weapon": "Tiberius main",
+      "count": 1,
+      "spot_diameter_m": 3.418277333333334,
+      "average_central_lobe_flux_w_m2_each": 45766196.25654371,
+      "soft_kill_time_s_each": 2.1850188169330735,
+      "structural_kill_time_s_each": 21.850188169330735
+    },
+    {
+      "weapon": "Tiberius secondary",
+      "count": 5,
+      "spot_diameter_m": 10.254832000000002,
+      "average_central_lobe_flux_w_m2_each": 1017026.5834787491,
+      "soft_kill_time_s_each": 98.32584676198832,
+      "structural_kill_time_s_each": 983.258467619883
+    },
+    {
+      "weapon": "Corvette spinal",
+      "count": 9,
+      "spot_diameter_m": 6.836554666666668,
+      "average_central_lobe_flux_w_m2_each": 5720774.532067964,
+      "soft_kill_time_s_each": 17.48015053546459,
+      "structural_kill_time_s_each": 174.80150535464588
+    }
+  ],
+  "combined_perfect_overlap_flux_w_m2": 102338299.96254912,
+  "durations": {
+    "3.0": {
+      "perfectly_overlapped_fluence_j_m2": 307014899.8876474,
+      "soft_threshold_multiple": 3.070148998876474,
+      "structural_threshold_multiple": 0.3070148998876474
+    },
+    "5.0": {
+      "perfectly_overlapped_fluence_j_m2": 511691499.8127456,
+      "soft_threshold_multiple": 5.116914998127456,
+      "structural_threshold_multiple": 0.5116914998127455
+    },
+    "10.0": {
+      "perfectly_overlapped_fluence_j_m2": 1023382999.6254911,
+      "soft_threshold_multiple": 10.233829996254912,
+      "structural_threshold_multiple": 1.023382999625491
+    },
+    "91.0": {
+      "perfectly_overlapped_fluence_j_m2": 9312785296.59197,
+      "soft_threshold_multiple": 93.1278529659197,
+      "structural_threshold_multiple": 9.31278529659197
+    }
+  },
+  "thermal": {
+    "tiberius_main_plus_five_secondaries_average_waste_w": 5666666666.666667,
+    "tiberius_reference_sink_capacity_j": 2160000000000.0,
+    "sink_fraction_for_91_s": 0.23873456790123457
+  },
+  "limitations": [
+    "Perfect overlap is an upper bound; a raster across CATHEDRAL's face distributes fluence.",
+    "The pre-laid solution removes acquisition delay but not reciprocal line of sight after crest.",
+    "This snapshot does not model return fire, chaff curtain burn-through, phase errors, or target attitude response.",
+    "CATHEDRAL geometry and vulnerability are provisional because project knowledge contains no authoritative Chanduran ship specification."
+  ]
+}
