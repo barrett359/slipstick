@@ -1,7 +1,7 @@
 {
   "designs": [
     {
-      "class": "Tiberious-Class BB",
+      "class": "Battleship",
       "components": [
         {
           "id": "pjhv26kj",
@@ -63,14 +63,14 @@
           "t_pulse_s": 0.01
         },
         {
-          "area_m2": 400000,
+          "area_m2": 1776732.6409301718,
           "eps": 0.9,
           "id": "nu6mzkq5",
           "kg_per_m2": 0.49067307692307693,
           "kind": "radiator_low",
-          "laser_waste_frac": 0.22513235294117645,
+          "laser_waste_frac": 1,
           "mass_override": false,
-          "mass_t": 196.26923076923077,
+          "mass_t": 871.7948717948718,
           "mw_per_kg": 0.0065,
           "mw_per_m2": 0.003189375,
           "name": "radiator_low",
@@ -78,12 +78,12 @@
           "t_k": 500
         },
         {
-          "endurance_s": 135,
-          "energy_mj_per_kg": 25,
+          "endurance_s": 300,
+          "energy_mj_per_kg": 5,
           "id": "c4mb0o4v",
           "kind": "flywheel",
           "mass_override": false,
-          "mass_t": 36,
+          "mass_t": 400,
           "material": "CNT composite",
           "name": "flywheel"
         },
@@ -91,7 +91,7 @@
           "id": "yl7ldvx2",
           "kind": "tank",
           "mass_override": false,
-          "mass_t": 3488.104974041033,
+          "mass_t": 3853.3437127774414,
           "name": "tank",
           "tank_structure_frac": 0.04
         },
@@ -99,7 +99,7 @@
           "id": "e4im86ee-structure",
           "kind": "structure",
           "mass_override": false,
-          "mass_t": 4024.736508512169,
+          "mass_t": 4446.165822440784,
           "name": "Primary structure",
           "structure_frac": 0.3
         },
@@ -143,10 +143,10 @@
     {
       "date": "",
       "deltas": {},
-      "id": "syfe3ypp",
+      "id": "95soakn6",
       "kind": "note",
       "note": "Commissioned at full load.",
-      "ship_id": "sdoqr5ve"
+      "ship_id": "qtro49f0"
     }
   ],
   "materials": [
@@ -263,7 +263,7 @@
     "laser_eta_wall": 0.4,
     "li_sink_mj_per_kg": 4.6,
     "li_vent_mj_per_kg": 19.6,
-    "map_project_d": 2.5,
+    "map_project_d": 2,
     "map_substep_s": 60,
     "map_tick_s": 3600,
     "open_fire_factor": 1.5,
@@ -281,12 +281,12 @@
     {
       "design_id": "e4im86ee",
       "flywheel_mj": 900000,
-      "id": "sdoqr5ve",
+      "id": "qtro49f0",
       "magazines": {
         "6lgeyrnk": 20
       },
-      "name": "Unnamed Tiberious-Class BB",
-      "propellant_t": 79629.2671724631,
+      "name": "Tiberious",
+      "propellant_t": 87202.62435112201,
       "radiator_hot_pct": 100,
       "radiator_low_pct": 100,
       "sink_capacity_mj": 2088400.0,
@@ -350,7 +350,7 @@
       {
         "a_m": 778570000000,
         "id": "jupiter",
-        "mass_kg": 1.8981999999999999e+27,
+        "mass_kg": 1.8982e+27,
         "name": "Jupiter",
         "parent": "sol",
         "phase0_deg": 34.4,
@@ -420,7 +420,7 @@
         "radius_m": 2410300
       }
     ],
-    "epoch_s": 447360000,
+    "epoch_s": 448184400,
     "nav": {}
   }
 }
