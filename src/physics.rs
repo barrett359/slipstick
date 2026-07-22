@@ -3,6 +3,9 @@
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
+
+use crate::model::{Component, Design, Missile, Settings};
 
 mod lidar_pd;
 pub use lidar_pd::*;
@@ -839,6 +842,701 @@ pub fn autosize(i: &AutosizeIn) -> CalcResult<AutosizeOut> {
         structure_t: i.auto_structure.then(|| dry_kg * i.structure_frac / 1000.0),
         laser_waste_w,
         laser_elec_w,
+    })
+}
+
+// ---------------------------------------------------------------------------
+// Designer component sizing. This is the authoritative implementation used by
+// both the HTTP UI and the provider-neutral agent calculator. The returned
+// design persists derived mass_t values so reports, saves, and simulations all
+// consume the same snapshot without reimplementing these formulas.
+// ---------------------------------------------------------------------------
+
+#[derive(Deserialize, JsonSchema)]
+pub struct DesignerActionIn {
+    /// Component identifier within the supplied design.
+    pub component_id: String,
+    /// Sizing action: reactor-min, reactor-max, nozzle, radiator-hot,
+    /// radiator-low, heat-sink, flywheel, tank, magazine, or structure.
+    pub mode: String,
+}
+
+#[derive(Deserialize, JsonSchema)]
+pub struct DesignerIn {
+    /// Shared engineering settings used by designer sizing.
+    pub settings: Settings,
+    /// Missile definitions used to derive loaded magazine and ordnance mass.
+    #[serde(default)]
+    pub missiles: Vec<Missile>,
+    /// Ship design to normalize or resize.
+    pub design: Design,
+    /// Optional component-local sizing action. Omit to normalize all masses.
+    #[serde(default)]
+    pub action: Option<DesignerActionIn>,
+}
+
+#[derive(Clone, Serialize, JsonSchema)]
+pub struct DesignerSummary {
+    pub component_mass_t: f64,
+    pub ordnance_t: f64,
+    pub dry_t: f64,
+    pub wet_t: f64,
+    pub propellant_t: f64,
+    pub tank_capacity_t: f64,
+    pub reactor_fusion_w: f64,
+    pub reactor_waste_w: f64,
+    pub laser_waste_w: f64,
+    pub laser_electrical_w: f64,
+}
+
+#[derive(Serialize, JsonSchema)]
+pub struct DesignerActionOut {
+    pub component_id: String,
+    pub mode: String,
+    pub feasible: bool,
+    pub message: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub achieved_accel_mg: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ceiling_accel_mg: Option<f64>,
+}
+
+#[derive(Serialize, JsonSchema)]
+pub struct DesignerOut {
+    pub design: Design,
+    pub summary: DesignerSummary,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub action: Option<DesignerActionOut>,
+}
+
+fn missile_wet_kg(missile: &Missile) -> f64 {
+    missile.payload_kg
+        + missile
+            .stages
+            .iter()
+            .map(|stage| stage.dry_mass_kg + stage.propellant_kg)
+            .sum::<f64>()
+}
+
+fn designer_laser_count(component: &Component) -> f64 {
+    component.count.unwrap_or(1).max(1) as f64
+}
+
+fn designer_component_mass_t(component: &Component) -> f64 {
+    let count = if component.kind == "laser" {
+        designer_laser_count(component)
+    } else {
+        1.0
+    };
+    component.mass_t.unwrap_or(0.0).max(0.0) * count
+}
+
+fn designer_laser_totals(design: &Design, settings: &Settings) -> (f64, f64) {
+    design
+        .components
+        .iter()
+        .filter(|component| component.kind == "laser")
+        .fold((0.0, 0.0), |(waste, electrical), component| {
+            let eta = component.eta_wall.unwrap_or(settings.laser_eta_wall);
+            let beam = component.p_beam_w.unwrap_or(0.0) * designer_laser_count(component);
+            if eta > 0.0 {
+                (waste + beam * (1.0 / eta - 1.0), electrical + beam / eta)
+            } else {
+                (waste, electrical)
+            }
+        })
+}
+
+fn designer_reactor_totals(design: &Design, settings: &Settings) -> (f64, f64) {
+    design
+        .components
+        .iter()
+        .filter(|component| component.kind == "reactor")
+        .fold((0.0, 0.0), |(power, waste), component| {
+            let fusion = component.p_fusion_w.unwrap_or(0.0);
+            (
+                power + fusion,
+                waste + fusion * component.rad_load_frac.unwrap_or(settings.as_rad_load_frac),
+            )
+        })
+}
+
+fn designer_ordnance_t(design: &Design, missile_masses: &BTreeMap<String, f64>) -> f64 {
+    design
+        .components
+        .iter()
+        .filter(|component| component.kind == "magazine")
+        .map(|component| {
+            component.capacity.unwrap_or(0) as f64
+                * component
+                    .missile_id
+                    .as_ref()
+                    .and_then(|id| missile_masses.get(id))
+                    .copied()
+                    .unwrap_or(0.0)
+                / 1000.0
+        })
+        .sum()
+}
+
+fn designer_summary(
+    design: &Design,
+    settings: &Settings,
+    missile_masses: &BTreeMap<String, f64>,
+) -> DesignerSummary {
+    let component_mass_t = design
+        .components
+        .iter()
+        .map(designer_component_mass_t)
+        .sum();
+    let ordnance_t = designer_ordnance_t(design, missile_masses);
+    let dry_t = component_mass_t + ordnance_t + design.structure_t.max(0.0);
+    let wet_t = dry_t * design.mr;
+    let tank_capacity_t = design
+        .components
+        .iter()
+        .filter(|component| component.kind == "tank")
+        .map(|component| {
+            component.mass_t.unwrap_or(0.0)
+                / component
+                    .tank_structure_frac
+                    .filter(|fraction| *fraction > 0.0)
+                    .unwrap_or(1.0 / settings.tank_prop_per_mass)
+        })
+        .sum();
+    let (reactor_fusion_w, reactor_waste_w) = designer_reactor_totals(design, settings);
+    let (laser_waste_w, laser_electrical_w) = designer_laser_totals(design, settings);
+    DesignerSummary {
+        component_mass_t,
+        ordnance_t,
+        dry_t,
+        wet_t,
+        propellant_t: wet_t - dry_t,
+        tank_capacity_t,
+        reactor_fusion_w,
+        reactor_waste_w,
+        laser_waste_w,
+        laser_electrical_w,
+    }
+}
+
+fn designer_radiator_power_w(component: &Component, settings: &Settings) -> f64 {
+    let area = component.area_m2.unwrap_or(0.0).max(0.0);
+    if let Some(surface) = component.mw_per_m2.filter(|value| *value > 0.0) {
+        area * surface * 1e6
+    } else {
+        area * component.eps.unwrap_or(0.9) * settings.sigma * component.t_k.unwrap_or(0.0).powi(4)
+    }
+}
+
+fn designer_prepare_legacy(
+    design: &mut Design,
+    settings: &Settings,
+    missile_masses: &BTreeMap<String, f64>,
+) {
+    let (laser_waste, laser_electrical) = designer_laser_totals(design, settings);
+    let (fusion, _) = designer_reactor_totals(design, settings);
+    let jet_power = fusion * settings.f_exh * settings.eta_noz;
+    for component in &mut design.components {
+        if component.mass_override.is_none()
+            && matches!(
+                component.kind.as_str(),
+                "reactor"
+                    | "nozzle"
+                    | "radiator_hot"
+                    | "radiator_low"
+                    | "heat_sink"
+                    | "flywheel"
+                    | "laser"
+                    | "magazine"
+                    | "tank"
+                    | "crew"
+                    | "structure"
+            )
+        {
+            component.mass_override = Some(component.auto == Some(false));
+        }
+        match component.kind.as_str() {
+            "reactor" => {
+                component.mw_per_kg.get_or_insert_with(|| {
+                    component.p_fusion_w.unwrap_or(0.0)
+                        / (component.mass_t.unwrap_or(0.0).max(1e-12) * 1e9)
+                });
+                component
+                    .target_accel_mg
+                    .get_or_insert(settings.as_target_accel_mg);
+            }
+            "nozzle" => {
+                component
+                    .mw_per_kg
+                    .get_or_insert(jet_power / (component.mass_t.unwrap_or(0.0).max(1e-12) * 1e9));
+            }
+            "radiator_hot" | "radiator_low" => {
+                let t = component
+                    .t_k
+                    .unwrap_or(if component.kind == "radiator_hot" {
+                        settings.as_hot_t_k
+                    } else {
+                        settings.as_low_t_k
+                    });
+                let eps = component.eps.unwrap_or(0.9);
+                let surface = component
+                    .mw_per_m2
+                    .get_or_insert(eps * settings.sigma * t.powi(4) / 1e6);
+                let specific =
+                    component
+                        .mw_per_kg
+                        .get_or_insert(if component.kind == "radiator_hot" {
+                            settings.as_hot_mw_per_kg
+                        } else {
+                            settings.as_low_mw_per_kg
+                        });
+                component
+                    .kg_per_m2
+                    .get_or_insert(*surface / specific.max(1e-12));
+                component
+                    .radiator_mode
+                    .get_or_insert_with(|| "specific_power".into());
+                if component.kind == "radiator_low" && component.laser_waste_frac.is_none() {
+                    component.laser_waste_frac = Some(if laser_waste > 0.0 {
+                        (designer_radiator_power_w(component, settings) / laser_waste).min(1.0)
+                    } else {
+                        1.0
+                    });
+                }
+                if component.mass_t.is_none() {
+                    let power = designer_radiator_power_w(component, settings);
+                    component.mass_t =
+                        Some(if component.radiator_mode.as_deref() == Some("areal") {
+                            component.area_m2.unwrap_or(0.0) * component.kg_per_m2.unwrap_or(0.0)
+                                / 1000.0
+                        } else {
+                            power / (component.mw_per_kg.unwrap_or(0.0).max(1e-12) * 1e9)
+                        });
+                }
+            }
+            "heat_sink" => {
+                let capacity = *component
+                    .energy_mj_per_kg
+                    .get_or_insert(settings.li_sink_mj_per_kg);
+                component.installed_mass_factor.get_or_insert(
+                    component.mass_t.unwrap_or(0.0) / component.li_t.unwrap_or(0.0).max(1e-12),
+                );
+                component.endurance_s.get_or_insert(if laser_waste > 0.0 {
+                    component.li_t.unwrap_or(0.0) * 1e9 * capacity / laser_waste
+                } else {
+                    settings.as_sink_endurance_min * 60.0
+                });
+            }
+            "flywheel" => {
+                component
+                    .material
+                    .get_or_insert_with(|| "Carbon-fiber composite".into());
+                let density = *component
+                    .energy_mj_per_kg
+                    .get_or_insert(settings.flywheel_mj_per_t / 1000.0);
+                component
+                    .endurance_s
+                    .get_or_insert(if laser_electrical > 0.0 {
+                        component.mass_t.unwrap_or(0.0) * 1e9 * density / laser_electrical
+                    } else {
+                        settings.as_flywheel_fire_s
+                    });
+            }
+            "laser" => {
+                component.mw_per_kg.get_or_insert(
+                    component.p_beam_w.unwrap_or(0.0)
+                        / (component.mass_t.unwrap_or(0.0).max(1e-12) * 1e9),
+                );
+            }
+            "magazine" => {
+                let loaded_t = component.capacity.unwrap_or(0) as f64
+                    * component
+                        .missile_id
+                        .as_ref()
+                        .and_then(|id| missile_masses.get(id))
+                        .copied()
+                        .unwrap_or(0.0)
+                    / 1000.0;
+                component
+                    .missile_mass_ratio
+                    .get_or_insert(loaded_t / component.mass_t.unwrap_or(0.0).max(1e-12));
+            }
+            "tank" => {
+                component
+                    .tank_structure_frac
+                    .get_or_insert(1.0 / settings.tank_prop_per_mass);
+            }
+            _ => {}
+        }
+        component.auto = None;
+    }
+
+    if !design
+        .components
+        .iter()
+        .any(|component| component.kind == "structure")
+    {
+        let old_structure = design.structure_t.max(0.0);
+        let rest = design
+            .components
+            .iter()
+            .map(designer_component_mass_t)
+            .sum::<f64>()
+            + designer_ordnance_t(design, missile_masses);
+        design.components.push(Component {
+            id: format!("{}-structure", design.id),
+            kind: "structure".into(),
+            name: "Primary structure".into(),
+            mass_t: Some(old_structure),
+            auto: None,
+            mass_override: Some(!design.structure_auto),
+            structure_frac: Some(old_structure / rest.max(1e-12)),
+            p_fusion_w: None,
+            rad_load_frac: None,
+            f_max_n: None,
+            area_m2: None,
+            t_k: None,
+            eps: None,
+            mw_per_kg: None,
+            radiator_mode: None,
+            kg_per_m2: None,
+            mw_per_m2: None,
+            laser_waste_frac: None,
+            endurance_s: None,
+            material: None,
+            energy_mj_per_kg: None,
+            installed_mass_factor: None,
+            tank_structure_frac: None,
+            missile_mass_ratio: None,
+            crew_count: None,
+            tonnes_per_crew: None,
+            target_accel_mg: None,
+            li_t: None,
+            count: None,
+            p_beam_w: None,
+            aperture_m: None,
+            lambda_m: None,
+            eta_wall: None,
+            t_pulse_s: None,
+            profiles: Vec::new(),
+            missile_id: None,
+            capacity: None,
+            note: None,
+            combat: None,
+            extra: BTreeMap::new(),
+        });
+        design.structure_t = 0.0;
+        design.structure_auto = false;
+    }
+}
+
+fn designer_normalize(
+    design: &mut Design,
+    settings: &Settings,
+    missile_masses: &BTreeMap<String, f64>,
+) -> DesignerSummary {
+    let (_, laser_electrical) = designer_laser_totals(design, settings);
+    let (fusion, _) = designer_reactor_totals(design, settings);
+    let auto_nozzles = design
+        .components
+        .iter()
+        .filter(|component| component.kind == "nozzle" && component.mass_override != Some(true))
+        .count()
+        .max(1) as f64;
+    let jet_power = fusion * settings.f_exh * settings.eta_noz;
+
+    for component in &mut design.components {
+        if component.mass_override == Some(true) {
+            continue;
+        }
+        let mass = match component.kind.as_str() {
+            "reactor" => {
+                component.p_fusion_w.unwrap_or(0.0)
+                    / (component.mw_per_kg.unwrap_or(0.0).max(1e-12) * 1e9)
+            }
+            "nozzle" => {
+                jet_power / auto_nozzles / (component.mw_per_kg.unwrap_or(0.0).max(1e-12) * 1e9)
+            }
+            "radiator_hot" | "radiator_low" => {
+                let power = designer_radiator_power_w(component, settings);
+                if component.radiator_mode.as_deref() == Some("areal") {
+                    component.area_m2.unwrap_or(0.0) * component.kg_per_m2.unwrap_or(0.0) / 1000.0
+                } else {
+                    power / (component.mw_per_kg.unwrap_or(0.0).max(1e-12) * 1e9)
+                }
+            }
+            "heat_sink" => {
+                component.li_t.unwrap_or(0.0)
+                    * component
+                        .installed_mass_factor
+                        .unwrap_or(settings.as_sink_extra_mass_factor)
+            }
+            "flywheel" => {
+                laser_electrical * component.endurance_s.unwrap_or(0.0)
+                    / (component.energy_mj_per_kg.unwrap_or(0.0).max(1e-12) * 1e9)
+            }
+            "laser" => {
+                component.p_beam_w.unwrap_or(0.0)
+                    / (component.mw_per_kg.unwrap_or(0.0).max(1e-12) * 1e9)
+            }
+            "magazine" => {
+                let loaded_t = component.capacity.unwrap_or(0) as f64
+                    * component
+                        .missile_id
+                        .as_ref()
+                        .and_then(|id| missile_masses.get(id))
+                        .copied()
+                        .unwrap_or(0.0)
+                    / 1000.0;
+                loaded_t / component.missile_mass_ratio.unwrap_or(0.0).max(1e-12)
+            }
+            "crew" => {
+                component.crew_count.unwrap_or(0) as f64 * component.tonnes_per_crew.unwrap_or(0.0)
+            }
+            _ => continue,
+        };
+        component.mass_t = Some(mass.max(0.0));
+        if matches!(component.kind.as_str(), "radiator_hot" | "radiator_low") {
+            let eps = component.eps.unwrap_or(0.9);
+            if let Some(surface) = component.mw_per_m2.filter(|value| *value > 0.0) {
+                component.t_k = Some((surface * 1e6 / (eps * settings.sigma)).powf(0.25));
+                component.eps = Some(eps);
+            }
+        }
+    }
+
+    let auto_tanks = design
+        .components
+        .iter()
+        .filter(|component| component.kind == "tank" && component.mass_override != Some(true))
+        .count();
+    let auto_structures = design
+        .components
+        .iter()
+        .filter(|component| component.kind == "structure" && component.mass_override != Some(true))
+        .count();
+    for _ in 0..50 {
+        let before: f64 = design
+            .components
+            .iter()
+            .filter(|component| {
+                matches!(component.kind.as_str(), "tank" | "structure")
+                    && component.mass_override != Some(true)
+            })
+            .map(|component| component.mass_t.unwrap_or(0.0))
+            .sum();
+        let current = designer_summary(design, settings, missile_masses);
+        let propellant = current.dry_t * (design.mr - 1.0).max(0.0);
+        if auto_tanks > 0 {
+            for component in design.components.iter_mut().filter(|component| {
+                component.kind == "tank" && component.mass_override != Some(true)
+            }) {
+                component.mass_t = Some(
+                    propellant * component.tank_structure_frac.unwrap_or(0.0) / auto_tanks as f64,
+                );
+            }
+        }
+        let rest = design
+            .components
+            .iter()
+            .filter(|component| component.kind != "structure")
+            .map(designer_component_mass_t)
+            .sum::<f64>()
+            + designer_ordnance_t(design, missile_masses);
+        if auto_structures > 0 {
+            for component in design.components.iter_mut().filter(|component| {
+                component.kind == "structure" && component.mass_override != Some(true)
+            }) {
+                component.mass_t =
+                    Some(rest * component.structure_frac.unwrap_or(0.0) / auto_structures as f64);
+            }
+        }
+        let after: f64 = design
+            .components
+            .iter()
+            .filter(|component| {
+                matches!(component.kind.as_str(), "tank" | "structure")
+                    && component.mass_override != Some(true)
+            })
+            .map(|component| component.mass_t.unwrap_or(0.0))
+            .sum();
+        if (after - before).abs() < 1e-8_f64.max(after * 1e-10) {
+            break;
+        }
+    }
+    if design
+        .components
+        .iter()
+        .any(|component| component.kind == "structure")
+    {
+        design.structure_t = 0.0;
+        design.structure_auto = false;
+    }
+    designer_summary(design, settings, missile_masses)
+}
+
+pub fn designer(i: &DesignerIn) -> CalcResult<DesignerOut> {
+    require_pos(i.design.mr, "design.mr")?;
+    require_pos(i.settings.g, "settings.g")?;
+    require_pos(i.settings.sigma, "settings.sigma")?;
+    let missile_masses = i
+        .missiles
+        .iter()
+        .map(|missile| (missile.id.clone(), missile_wet_kg(missile)))
+        .collect::<BTreeMap<_, _>>();
+    let mut design = i.design.clone();
+    designer_prepare_legacy(&mut design, &i.settings, &missile_masses);
+    let mut summary = designer_normalize(&mut design, &i.settings, &missile_masses);
+    let mut action_out = None;
+
+    if let Some(action) = &i.action {
+        let index = design
+            .components
+            .iter()
+            .position(|component| component.id == action.component_id)
+            .ok_or_else(|| format!("component {} not found", action.component_id))?;
+        let kind = design.components[index].kind.clone();
+        let mut feasible = true;
+        let mut achieved_accel_mg = None;
+        let mut ceiling_accel_mg = None;
+        let message;
+        match action.mode.as_str() {
+            "reactor-min" | "reactor-max" => {
+                if kind != "reactor" {
+                    return Err(format!("{} requires a reactor component", action.mode));
+                }
+                let ve = if action.mode == "reactor-min" {
+                    i.settings.ve_gear_min_m_s
+                } else {
+                    i.settings.ve_max_m_s
+                };
+                require_pos(ve, "reactor sizing exhaust velocity")?;
+                let target_mg = design.components[index]
+                    .target_accel_mg
+                    .unwrap_or(i.settings.as_target_accel_mg);
+                let target = target_mg * i.settings.g * 1e-3;
+                let accel_at = |power: f64, design: &mut Design| {
+                    design.components[index].p_fusion_w = Some(power);
+                    let report = designer_normalize(design, &i.settings, &missile_masses);
+                    2.0 * report.reactor_fusion_w * i.settings.f_exh * i.settings.eta_noz
+                        / ve
+                        / (report.wet_t * 1000.0).max(1.0)
+                };
+                let mut lo = 0.0;
+                let mut hi = design.components[index].p_fusion_w.unwrap_or(1e9).max(1e9);
+                while accel_at(hi, &mut design) < target && hi < 1e22 {
+                    hi *= 2.0;
+                }
+                let ceiling = accel_at(hi, &mut design);
+                feasible = ceiling >= target;
+                let solved_target = if feasible { target } else { ceiling * 0.98 };
+                if solved_target <= 0.0 {
+                    return Err("current design has no positive reactor sizing solution".into());
+                }
+                for _ in 0..80 {
+                    let mid = (lo + hi) / 2.0;
+                    if accel_at(mid, &mut design) < solved_target {
+                        lo = mid;
+                    } else {
+                        hi = mid;
+                    }
+                }
+                design.components[index].p_fusion_w = Some(hi);
+                designer_normalize(&mut design, &i.settings, &missile_masses);
+                let achieved = solved_target / (i.settings.g * 1e-3);
+                achieved_accel_mg = Some(achieved);
+                ceiling_accel_mg = (!feasible).then_some(ceiling / (i.settings.g * 1e-3));
+                message = if feasible {
+                    format!("sized reactor to {:.3} MW for {:.3} mg", hi / 1e6, achieved)
+                } else {
+                    format!(
+                        "target infeasible; sized to {:.3} mg, 98% of the mass-scaling ceiling",
+                        achieved
+                    )
+                };
+            }
+            "nozzle" => {
+                if kind != "nozzle" {
+                    return Err("nozzle sizing requires a nozzle component".into());
+                }
+                let nozzles = design
+                    .components
+                    .iter()
+                    .filter(|component| component.kind == "nozzle")
+                    .count()
+                    .max(1) as f64;
+                design.components[index].f_max_n = Some(
+                    2.0 * summary.reactor_fusion_w * i.settings.f_exh * i.settings.eta_noz
+                        / i.settings.ve_gear_min_m_s
+                        / nozzles,
+                );
+                message = "sized nozzle not to bottleneck at minimum exhaust velocity".into();
+            }
+            "radiator-hot" | "radiator-low" => {
+                let expected = if action.mode == "radiator-hot" {
+                    "radiator_hot"
+                } else {
+                    "radiator_low"
+                };
+                if kind != expected {
+                    return Err(format!("{} requires a {} component", action.mode, expected));
+                }
+                let target_w = if action.mode == "radiator-hot" {
+                    summary.reactor_waste_w
+                } else {
+                    summary.laser_waste_w * design.components[index].laser_waste_frac.unwrap_or(1.0)
+                };
+                let surface = require_pos(
+                    design.components[index].mw_per_m2.unwrap_or(0.0),
+                    "radiator mw_per_m2",
+                )?;
+                design.components[index].area_m2 = Some(target_w / (surface * 1e6));
+                message = format!("sized radiator to reject {:.3} MW", target_w / 1e6);
+            }
+            "heat-sink" => {
+                if kind != "heat_sink" {
+                    return Err("heat-sink sizing requires a heat_sink component".into());
+                }
+                let capacity = design.components[index]
+                    .energy_mj_per_kg
+                    .unwrap_or(i.settings.li_sink_mj_per_kg)
+                    .max(1e-12);
+                design.components[index].li_t = Some(
+                    summary.laser_waste_w * design.components[index].endurance_s.unwrap_or(0.0)
+                        / (capacity * 1e9),
+                );
+                message = "sized heat storage for the requested laser operating time".into();
+            }
+            "flywheel" | "tank" | "magazine" | "structure" => {
+                let expected = match action.mode.as_str() {
+                    "flywheel" => "flywheel",
+                    "tank" => "tank",
+                    "magazine" => "magazine",
+                    _ => "structure",
+                };
+                if kind != expected {
+                    return Err(format!("{} requires a {} component", action.mode, expected));
+                }
+                message = format!("recalculated {} mass", expected);
+            }
+            other => return Err(format!("unknown designer sizing action {other}")),
+        }
+        summary = designer_normalize(&mut design, &i.settings, &missile_masses);
+        action_out = Some(DesignerActionOut {
+            component_id: action.component_id.clone(),
+            mode: action.mode.clone(),
+            feasible,
+            message,
+            achieved_accel_mg,
+            ceiling_accel_mg,
+        });
+    }
+
+    Ok(DesignerOut {
+        design,
+        summary,
+        action: action_out,
     })
 }
 
@@ -3644,6 +4342,160 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn designer_normalizes_legacy_defaults_without_mass_drift() {
+        let fleet: crate::model::FleetDocument =
+            serde_json::from_str(include_str!("default_fleet.json")).unwrap();
+        let expected = [90_000.0, 55_000.0, 50_000.0, 5_000.0];
+        for (design, expected_dry_t) in fleet.designs.iter().zip(expected) {
+            let out = designer(&DesignerIn {
+                settings: fleet.settings.clone(),
+                missiles: fleet.missiles.clone(),
+                design: design.clone(),
+                action: None,
+            })
+            .unwrap();
+            assert!(
+                close(out.summary.dry_t, expected_dry_t, 1e-10),
+                "{}: {} vs {}",
+                design.id,
+                out.summary.dry_t,
+                expected_dry_t
+            );
+            assert_eq!(
+                out.design
+                    .components
+                    .iter()
+                    .filter(|component| component.kind == "structure")
+                    .count(),
+                1
+            );
+            assert!(out
+                .design
+                .components
+                .iter()
+                .all(|component| component.auto.is_none()));
+            assert!(out.design.components.iter().all(|component| {
+                component
+                    .mass_t
+                    .is_none_or(|mass| mass.is_finite() && mass >= 0.0)
+            }));
+        }
+    }
+
+    #[test]
+    fn designer_executes_every_component_sizing_action() {
+        let fleet: crate::model::FleetDocument =
+            serde_json::from_str(include_str!("default_fleet.json")).unwrap();
+        let mut design = designer(&DesignerIn {
+            settings: fleet.settings.clone(),
+            missiles: fleet.missiles.clone(),
+            design: fleet.designs[0].clone(),
+            action: None,
+        })
+        .unwrap()
+        .design;
+        let actions = [
+            ("reactor", "reactor-min"),
+            ("reactor", "reactor-max"),
+            ("nozzle", "nozzle"),
+            ("radiator_hot", "radiator-hot"),
+            ("radiator_low", "radiator-low"),
+            ("heat_sink", "heat-sink"),
+            ("flywheel", "flywheel"),
+            ("tank", "tank"),
+            ("magazine", "magazine"),
+            ("structure", "structure"),
+        ];
+        for (kind, mode) in actions {
+            let component_id = design
+                .components
+                .iter()
+                .find(|component| component.kind == kind)
+                .unwrap()
+                .id
+                .clone();
+            let out = designer(&DesignerIn {
+                settings: fleet.settings.clone(),
+                missiles: fleet.missiles.clone(),
+                design,
+                action: Some(DesignerActionIn {
+                    component_id,
+                    mode: mode.into(),
+                }),
+            })
+            .unwrap();
+            assert!(
+                out.summary.dry_t.is_finite() && out.summary.dry_t > 0.0,
+                "{mode}"
+            );
+            assert_eq!(out.action.as_ref().unwrap().mode, mode);
+            design = out.design;
+        }
+
+        let crew: Component = serde_json::from_value(serde_json::json!({
+            "id": "crew-test", "kind": "crew", "name": "Crew compartment",
+            "mass_t": 0.0, "mass_override": false,
+            "crew_count": 40, "tonnes_per_crew": 2.0
+        }))
+        .unwrap();
+        design.components.push(crew);
+        let radiator = design
+            .components
+            .iter_mut()
+            .find(|component| component.kind == "radiator_hot")
+            .unwrap();
+        radiator.radiator_mode = Some("areal".into());
+        radiator.area_m2 = Some(100.0);
+        radiator.kg_per_m2 = Some(3.0);
+        let out = designer(&DesignerIn {
+            settings: fleet.settings.clone(),
+            missiles: fleet.missiles.clone(),
+            design,
+            action: None,
+        })
+        .unwrap();
+        let crew = out
+            .design
+            .components
+            .iter()
+            .find(|component| component.id == "crew-test")
+            .unwrap();
+        assert_eq!(crew.mass_t, Some(80.0));
+        let radiator = out
+            .design
+            .components
+            .iter()
+            .find(|component| component.kind == "radiator_hot")
+            .unwrap();
+        assert_eq!(radiator.mass_t, Some(0.3));
+
+        let mut manual = out.design;
+        let crew = manual
+            .components
+            .iter_mut()
+            .find(|component| component.id == "crew-test")
+            .unwrap();
+        crew.mass_override = Some(true);
+        crew.mass_t = Some(12.0);
+        let out = designer(&DesignerIn {
+            settings: fleet.settings.clone(),
+            missiles: fleet.missiles.clone(),
+            design: manual,
+            action: None,
+        })
+        .unwrap();
+        assert_eq!(
+            out.design
+                .components
+                .iter()
+                .find(|component| component.id == "crew-test")
+                .unwrap()
+                .mass_t,
+            Some(12.0)
+        );
     }
 
     /// MR 8 with the research-doc scaling parameters caps out below 5 mg;

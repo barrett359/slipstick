@@ -170,6 +170,7 @@ function radiatorFlux_w_m2(t_k, eps) {
 function radiatorPower_w(c) {
   const area = c.area_m2 || 0;
   if (!Number.isFinite(area) || area <= 0) return 0;
+  if (Number.isFinite(c.mw_per_m2) && c.mw_per_m2 > 0) return area * c.mw_per_m2 * 1e6;
   return radiatorFlux_w_m2(c.t_k || 0, c.eps || 0) * area;
 }
 
@@ -196,14 +197,8 @@ function radiatorMwKg(c) {
   return radiatorDefaultMwKg(c.kind);
 }
 
-function radiatorMass_t(c) {
-  const mwkg = radiatorMwKg(c);
-  return mwkg > 0 ? radiatorPower_w(c) / (mwkg * 1e9) : 0;
-}
-
 function componentMass_t(c) {
-  const each = c.kind === "radiator_hot" || c.kind === "radiator_low"
-    ? radiatorMass_t(c) : (c.mass_t || 0);
+  const each = Math.max(0, c.mass_t || 0);
   return each * (c.kind === "laser" ? laserCount(c) : 1);
 }
 
@@ -296,8 +291,10 @@ function sums(design) {
       case "nozzle": out.f_cap += c.f_max_n || 0; break;
       case "radiator_hot": out.radHot.push(c); break;
       case "radiator_low": out.radLow.push(c); break;
-      case "heat_sink": out.sinkCap_mj += (c.li_t || 0) * st.li_sink_mj_per_kg * 1000; break;
-      case "flywheel": out.flyCap_mj += (c.mass_t || 0) * st.flywheel_mj_per_t; break;
+      case "heat_sink": out.sinkCap_mj += (c.li_t || 0) * 1000 *
+        (c.energy_mj_per_kg || st.li_sink_mj_per_kg); break;
+      case "flywheel": out.flyCap_mj += (c.mass_t || 0) * 1000 *
+        (c.energy_mj_per_kg || st.flywheel_mj_per_t / 1000); break;
       case "laser": out.lasers.push(c); break;
       case "magazine": {
         const m = missileById(c.missile_id);
@@ -306,7 +303,8 @@ function sums(design) {
         out.magazines.push(c);
         break;
       }
-      case "tank": out.tankCap_t += (c.mass_t || 0) * st.tank_prop_per_mass; break;
+      case "tank": out.tankCap_t += (c.mass_t || 0) /
+        Math.max(c.tank_structure_frac || 1 / st.tank_prop_per_mass, 1e-12); break;
     }
   }
   out.dry_t = out.compMass_t + out.ordnance_t + (design.structure_t || 0);
@@ -512,11 +510,12 @@ function settingsModal() {
     <p class="note">All physics and auto-sizing reads these values — nothing is hardcoded.</p>
     <div class="grid2">${rows}</div>`, {
     submitLabel: "Save",
-    onSubmit() {
+    async onSubmit() {
       for (const k of Object.keys(S())) {
         const v = num("set-" + k);
         if (Number.isFinite(v)) S()[k] = v;
       }
+      await syncAllDesignerMasses();
       touch();
     },
   });
@@ -955,20 +954,41 @@ const ACTIONS = {
 
 /* ============================= DESIGNER ================================= */
 
-const AUTO_KINDS = ["reactor", "nozzle", "radiator_hot", "radiator_low", "heat_sink", "flywheel", "tank"];
+const AUTO_MASS_KINDS = ["reactor", "nozzle", "radiator_hot", "radiator_low", "heat_sink",
+  "flywheel", "laser", "magazine", "tank", "crew", "structure"];
+
+const FLYWHEEL_MATERIALS = {
+  "Carbon-fiber composite": 9,
+  "CNT composite": 25,
+  "Maraging steel": 0.5,
+  "Custom": null,
+};
+const DESIGNER_PERCENT_FIELDS = new Set(["rad_load_frac", "laser_waste_frac", "tank_structure_frac", "structure_frac"]);
+const DESIGNER_INTEGER_FIELDS = new Set(["capacity", "count", "crew_count"]);
 
 const KIND_FIELDS = {
-  reactor: [["p_fusion_w", "Fusion power (W)"], ["rad_load_frac", "Radiator load fraction"], ["mass_t", "Mass (t)"]],
-  nozzle: [["f_max_n", "Max thrust (N)"], ["mass_t", "Mass (t)"]],
-  radiator_hot: [["area_m2", "Area (m²)"], ["t_k", "Temp (K)"], ["eps", "Emissivity"], ["mw_per_kg", "MW/kg"]],
-  radiator_low: [["area_m2", "Area (m²)"], ["t_k", "Temp (K)"], ["eps", "Emissivity"], ["mw_per_kg", "MW/kg"]],
-  heat_sink: [["li_t", "Lithium (t)"], ["mass_t", "Mass incl. tankage (t)"]],
-  flywheel: [["mass_t", "Mass (t)"]],
-  laser: [["p_beam_w", "Beam power (W)"], ["aperture_m", "Aperture (m)"], ["lambda_m", "Wavelength (m)"],
-          ["eta_wall", "Wall-plug η"], ["t_pulse_s", "Pulse (s)"], ["count", "Count"], ["mass_t", "Mass per unit (t)"]],
-  magazine: [["missile_id", "Missile design"], ["capacity", "Capacity (rounds)"], ["mass_t", "Structure mass (t)"]],
-  tank: [["mass_t", "Mass (t)"]],
-  other: [["mass_t", "Mass (t)"], ["note", "Note"]],
+  reactor: [["p_fusion_w", "Fusion power (W)"], ["rad_load_frac", "Waste heat (%)"],
+            ["mw_per_kg", "Specific power (MW/kg)"], ["target_accel_mg", "Target wet accel (mg)"]],
+  nozzle: [["f_max_n", "Maximum thrust (N)"], ["mw_per_kg", "Specific power (MW/kg)"]],
+  radiator_hot: [["area_m2", "Rejection area (m²)"], ["radiator_mode", "Mass model"],
+                 ["mw_per_kg", "Specific rejection (MW/kg)"], ["kg_per_m2", "Areal density (kg/m²)"],
+                 ["mw_per_m2", "Surface rejection (MW/m²)"]],
+  radiator_low: [["area_m2", "Rejection area (m²)"], ["laser_waste_frac", "Laser waste heat (%)"],
+                 ["radiator_mode", "Mass model"], ["mw_per_kg", "Specific rejection (MW/kg)"],
+                 ["kg_per_m2", "Areal density (kg/m²)"], ["mw_per_m2", "Surface rejection (MW/m²)"]],
+  heat_sink: [["li_t", "Heat-storage material (t)"], ["energy_mj_per_kg", "Heat capacity (MJ/kg)"],
+              ["installed_mass_factor", "Installed / material mass"], ["endurance_s", "Laser operation (s)"]],
+  flywheel: [["material", "Flywheel material"], ["energy_mj_per_kg", "Storage (MJ/kg)"],
+             ["endurance_s", "Laser operation (s)"]],
+  laser: [["p_beam_w", "Beam power (W)"], ["mw_per_kg", "Specific power (MW/kg)"],
+          ["aperture_m", "Aperture (m)"], ["lambda_m", "Wavelength (m)"],
+          ["eta_wall", "Wall-plug η"], ["t_pulse_s", "Pulse (s)"], ["count", "Count"]],
+  magazine: [["missile_id", "Missile design"], ["capacity", "Capacity (rounds)"],
+             ["missile_mass_ratio", "Missile mass / structure mass"]],
+  tank: [["tank_structure_frac", "Tank structure (% of propellant)"]],
+  crew: [["crew_count", "Crew members"], ["tonnes_per_crew", "Tonnes / crew member"]],
+  structure: [["structure_frac", "Mass (% of rest of ship)"]],
+  other: [["note", "Note"]],
 };
 
 // Sane-option choices per kind.field; everything keeps a custom escape hatch.
@@ -990,8 +1010,9 @@ function compSummary(c) {
     case "radiator_hot": case "radiator_low":
       return fmtSI(c.area_m2, "m²") + " @ " + c.t_k + " K, ε " + c.eps +
              " → " + fmtSI(radiatorPower_w(c), "W") + ", " + fmtMwKg(radiatorMwKg(c)) + " MW/kg";
-    case "heat_sink": return c.li_t + " t Li → " + fmtMJ(c.li_t * S().li_sink_mj_per_kg * 1000);
-    case "flywheel": return "→ " + fmtMJ((c.mass_t || 0) * S().flywheel_mj_per_t);
+    case "heat_sink": return c.li_t + " t storage → " +
+      fmtMJ(c.li_t * (c.energy_mj_per_kg || S().li_sink_mj_per_kg) * 1000);
+    case "flywheel": return `${c.material || "Custom"} → ` + fmtMJ((c.mass_t || 0) * 1000 * (c.energy_mj_per_kg || 0));
     case "laser": return (laserCount(c) > 1 ? "×" + laserCount(c) + " " : "") +
                          fmtSI(c.p_beam_w, "W") + ", " + c.aperture_m + " m, " +
                          fmtSI(c.lambda_m, "m") + `, ${(c.profiles || []).length} profiles`;
@@ -1000,29 +1021,72 @@ function compSummary(c) {
       return (m ? m.name : c.missile_id) + " × " + c.capacity +
              " (" + fmtT(c.capacity * (m ? missileWetKg(m) / 1000 : 0)) + " ordnance)";
     }
-    case "tank": return "→ " + fmtT((c.mass_t || 0) * S().tank_prop_per_mass) + " propellant";
+    case "tank": return "→ " + fmtT((c.mass_t || 0) /
+      Math.max(c.tank_structure_frac || 1 / S().tank_prop_per_mass, 1e-12)) + " propellant";
+    case "crew": return `${c.crew_count || 0} crew @ ${trim3(c.tonnes_per_crew || 0)} t/person`;
+    case "structure": return `${((c.structure_frac || 0) * 100).toFixed(1)}% of the rest of the dry ship`;
     default: return c.note || "";
   }
 }
 
 const latestDesigner = makeLatest();
+const designerSyncQueues = new WeakMap();
 const COMPONENT_GROUPS = [
   ["Drive", ["reactor", "nozzle"]],
   ["Thermal", ["radiator_hot", "radiator_low", "heat_sink", "flywheel"]],
   ["Weapons", ["laser"]],
-  ["Stores", ["magazine", "tank"]],
-  ["Structure & other", ["other"]],
+  ["Stores & crew", ["magazine", "tank", "crew"]],
+  ["Structure & other", ["structure", "other"]],
 ];
+
+async function syncDesignerMasses(design, action = null) {
+  const previous = designerSyncQueues.get(design) || Promise.resolve();
+  const request = previous.catch(() => {}).then(() => calc("designer", {
+    settings: S(), missiles: DB.missiles, design, action,
+  }));
+  designerSyncQueues.set(design, request);
+  const result = await request;
+  Object.assign(design, result.design);
+  return result;
+}
+
+async function syncAllDesignerMasses() {
+  await Promise.all(DB.designs.map(design => syncDesignerMasses(design)));
+}
 
 function inlineComponentFields(c) {
   return KIND_FIELDS[c.kind].map(([k, label]) => {
-    const value = k === "mw_per_kg" ? radiatorMwKg(c) : c[k];
+    let value = k === "mw_per_kg" ? radiatorMwKg(c) : c[k];
+    if (DESIGNER_PERCENT_FIELDS.has(k) && Number.isFinite(value)) value *= 100;
     if (k === "missile_id") return `<label>${esc(label)}</label><select data-ci="${c.id}" data-key="${k}">
       ${DB.missiles.map(m => `<option value="${m.id}" ${m.id === c.missile_id ? "selected" : ""}>${esc(m.name)}</option>`).join("")}</select>`;
+    if (k === "radiator_mode") return `<label>${esc(label)}</label><select data-ci="${c.id}" data-key="${k}">
+      <option value="specific_power" ${c.radiator_mode !== "areal" ? "selected" : ""}>MW/kg</option>
+      <option value="areal" ${c.radiator_mode === "areal" ? "selected" : ""}>kg/m² + MW/m²</option></select>`;
+    if (k === "material") return `<label>${esc(label)}</label><select data-ci="${c.id}" data-key="${k}">
+      ${Object.keys(FLYWHEEL_MATERIALS).map(name => `<option ${name === c.material ? "selected" : ""}>${esc(name)}</option>`).join("")}</select>`;
     const type = k === "note" ? "text" : "number";
-    return `<label>${esc(label)}</label><input type="${type}" ${type === "number" ? 'step="any"' : ""}
+    return `<label>${esc(label)}</label><input type="${type}" ${type === "number" ? `step="${DESIGNER_INTEGER_FIELDS.has(k) ? 1 : "any"}"` : ""}
+      ${DESIGNER_PERCENT_FIELDS.has(k) ? 'min="0" max="100"' : ""}
+      ${DESIGNER_INTEGER_FIELDS.has(k) ? 'min="0"' : ""}
       data-ci="${c.id}" data-key="${k}" value="${esc(value ?? "")}">`;
   }).join("");
+}
+
+function componentSizingActions(c) {
+  switch (c.kind) {
+    case "reactor": return `<button class="small" data-size-component="${c.id}" data-size-mode="reactor-min">Auto-size power at min gear</button>
+      <button class="small" data-size-component="${c.id}" data-size-mode="reactor-max">Auto-size power at max gear</button>`;
+    case "nozzle": return `<button class="small" data-size-component="${c.id}" data-size-mode="nozzle">Auto-size for min exhaust velocity</button>`;
+    case "radiator_hot": return `<button class="small" data-size-component="${c.id}" data-size-mode="radiator-hot">Reject reactor waste heat</button>`;
+    case "radiator_low": return `<button class="small" data-size-component="${c.id}" data-size-mode="radiator-low">Reject selected laser waste heat</button>`;
+    case "heat_sink": return `<button class="small" data-size-component="${c.id}" data-size-mode="heat-sink">Accept laser heat for set time</button>`;
+    case "flywheel": return `<button class="small" data-size-component="${c.id}" data-size-mode="flywheel">Power lasers for set time</button>`;
+    case "tank": return `<button class="small" data-size-component="${c.id}" data-size-mode="tank">Size tank structure for mass ratio</button>`;
+    case "magazine": return `<button class="small" data-size-component="${c.id}" data-size-mode="magazine">Size structure from missile load</button>`;
+    case "structure": return `<button class="small" data-size-component="${c.id}" data-size-mode="structure">Calculate from rest of ship</button>`;
+    default: return "";
+  }
 }
 
 function componentCard(c) {
@@ -1036,10 +1100,12 @@ function componentCard(c) {
       <div class="component-fields">
         <label>Name</label><input type="text" data-ci="${c.id}" data-key="name" value="${esc(c.name)}">
         ${inlineComponentFields(c)}
-        ${AUTO_KINDS.includes(c.kind) ? `<label>Solver</label><label class="matcheck"><input type="checkbox"
-          data-ci-auto="${c.id}" ${c.auto ? "checked" : ""}> ${c.auto ? "auto-sized" : "pinned"}</label>` : ""}
+        ${AUTO_MASS_KINDS.includes(c.kind) ? `<label>Mass</label><label class="matcheck"><input type="checkbox"
+          data-mass-override="${c.id}" ${c.mass_override ? "checked" : ""}> manual override</label>` : ""}
+        ${c.mass_override || !AUTO_MASS_KINDS.includes(c.kind) ? `<label>${c.kind === "laser" ? "Manual mass / unit (t)" : "Manual mass (t)"}</label>
+          <input type="number" step="any" data-ci="${c.id}" data-key="mass_t" value="${c.mass_t || 0}">` : ""}
       </div>
-      <div class="actions">${lab}<button class="small" data-dup="${c.id}">Duplicate</button>
+      <div class="actions">${componentSizingActions(c)}${lab}<button class="small" data-dup="${c.id}">Duplicate</button>
         <button class="small danger" data-del="${c.id}">Delete</button></div>
     </div></details>`;
 }
@@ -1069,10 +1135,15 @@ function renderDesigner(main) {
 
   main.querySelectorAll("[data-des]").forEach(r =>
     r.onclick = () => { UI.designId = r.dataset.des; UI.autosize = null; render(); });
-  $("btn-new-design").onclick = () => {
+  $("btn-new-design").onclick = async () => {
     const d = { id: uid(), name: "New design", class: "custom", mr: 4,
-                structure_t: 1000, structure_auto: true, components: [] };
-    DB.designs.push(d); UI.designId = d.id; UI.autosize = null; touch();
+                structure_t: 0, structure_auto: false, components: [
+                  { id: uid(), kind: "structure", name: "Primary structure", structure_frac: S().as_structure_frac,
+                    mass_t: 0, mass_override: false }
+                ] };
+    DB.designs.push(d); UI.designId = d.id; UI.autosize = null;
+    try { await syncDesignerMasses(d); touch(); }
+    catch (e) { toast(e.message); }
   };
   $("btn-dup-design").onclick = () => {
     if (!design) return;
@@ -1108,9 +1179,6 @@ function renderDesignDetail(root, design) {
       <div class="field"><label>Name</label><input type="text" id="des-name" class="wide" value="${esc(design.name)}"></div>
       <div class="field"><label>Class</label><input type="text" id="des-class" value="${esc(design.class)}"></div>
       <div class="field"><label>Mass ratio</label><input type="number" step="any" id="des-mr" value="${design.mr}"></div>
-      <div class="field"><label>Structure (t)</label><input type="number" step="any" id="des-struct" value="${design.structure_t}"></div>
-      <div class="field"><label class="matcheck"><input type="checkbox" id="des-struct-auto"
-        ${design.structure_auto ? "checked" : ""}> auto-size structure (${(S().as_structure_frac * 100).toFixed(0)}% of dry)</label></div>
       ${design.note ? `<div class="flag">${esc(design.note)}</div>` : ""}
       <h3>Components</h3>
       <div class="design-groups">${grouped}</div>
@@ -1118,13 +1186,6 @@ function renderDesignDetail(root, design) {
         <select id="add-kind">${kindOpts}</select>
         <button id="btn-add-comp">Add component</button>
       </div>
-      <h3>Auto-size drive &amp; thermals</h3>
-      <div class="field"><label>Target wet accel (mg)</label>
-        <input type="number" step="any" id="as-target" value="${S().as_target_accel_mg}"></div>
-      <button id="btn-autosize" class="primary">Solve</button>
-      <span class="note">Sizes the components marked <span class="pill on">auto</span> from the
-      scaling parameters in settings; pin a component to hold it fixed.</span>
-      <div id="as-result"></div>
     </div>
     <div class="panel inset sticky-report" id="design-report"><p class="note">Computing…</p></div>`;
 
@@ -1132,16 +1193,10 @@ function renderDesignDetail(root, design) {
     design.name = $("des-name").value;
     design.class = $("des-class").value;
     const mr = num("des-mr");
-    const structure = num("des-struct");
     if (Number.isFinite(mr) && mr > 1) design.mr = mr;
-    if (Number.isFinite(structure) && structure >= 0) design.structure_t = structure;
-    design.structure_auto = $("des-struct-auto").checked;
-    touch(false);
-    clearTimeout(renderDesignDetail._t);
-    renderDesignDetail._t = setTimeout(() => updateDesignReport(design), 120);
+    scheduleDesignerSync();
   };
-  ["des-name", "des-class", "des-mr", "des-struct"].forEach(id => $(id).oninput = commit);
-  $("des-struct-auto").onchange = commit;
+  ["des-name", "des-class", "des-mr"].forEach(id => $(id).oninput = commit);
 
   const updateCard = c => {
     const summary = root.querySelector(`[data-comp-summary="${c.id}"]`);
@@ -1153,33 +1208,55 @@ function renderDesignDetail(root, design) {
     clearTimeout(renderDesignDetail._t);
     renderDesignDetail._t = setTimeout(() => updateDesignReport(design), 120);
   };
+  const scheduleDesignerSync = () => {
+    clearTimeout(renderDesignDetail._syncT);
+    renderDesignDetail._syncT = setTimeout(async () => {
+      try {
+        await syncDesignerMasses(design);
+        touch(false);
+        design.components.forEach(updateCard);
+      } catch (e) { toast(e.message); }
+    }, 120);
+  };
   root.querySelectorAll("[data-ci]").forEach(inp => {
     const apply = () => {
       const c = design.components.find(x => x.id === inp.dataset.ci);
       const k = inp.dataset.key;
       if (!c) return;
-      if (k === "name" || k === "note" || k === "missile_id") c[k] = inp.value;
-      else { const v = parseFloat(inp.value); if (Number.isFinite(v)) c[k] = v; }
-      if (c.kind === "radiator_hot" || c.kind === "radiator_low") delete c.mass_t;
-      touch(false); updateCard(c);
+      if (k === "name" || k === "note" || k === "missile_id" || k === "radiator_mode" || k === "material") c[k] = inp.value;
+      else {
+        const v = parseFloat(inp.value);
+        if (Number.isFinite(v)) c[k] = DESIGNER_PERCENT_FIELDS.has(k) ? v / 100
+          : DESIGNER_INTEGER_FIELDS.has(k) ? Math.max(0, Math.round(v)) : v;
+      }
+      if (k === "material" && FLYWHEEL_MATERIALS[inp.value] != null) {
+        c.energy_mj_per_kg = FLYWHEEL_MATERIALS[inp.value];
+        const energy = root.querySelector(`[data-ci="${c.id}"][data-key="energy_mj_per_kg"]`);
+        if (energy) energy.value = c.energy_mj_per_kg;
+      }
+      scheduleDesignerSync();
     };
     inp.oninput = inp.tagName === "INPUT" ? apply : null;
     inp.onchange = apply;
   });
-  root.querySelectorAll("[data-ci-auto]").forEach(inp => inp.onchange = () => {
-    const c = design.components.find(x => x.id === inp.dataset.ciAuto);
-    c.auto = inp.checked; inp.parentElement.lastChild.textContent = inp.checked ? " auto-sized" : " pinned";
-    touch(false); updateCard(c);
+  root.querySelectorAll("[data-mass-override]").forEach(inp => inp.onchange = async () => {
+    const c = design.components.find(x => x.id === inp.dataset.massOverride);
+    c.mass_override = inp.checked;
+    try { await syncDesignerMasses(design); touch(); }
+    catch (e) { toast(e.message); }
   });
   root.querySelectorAll("[data-del]").forEach(b =>
-    b.onclick = () => {
+    b.onclick = async () => {
       design.components = design.components.filter(c => c.id !== b.dataset.del);
-      touch();
+      try { await syncDesignerMasses(design); touch(); }
+      catch (e) { toast(e.message); }
     });
-  root.querySelectorAll("[data-dup]").forEach(b => b.onclick = () => {
+  root.querySelectorAll("[data-dup]").forEach(b => b.onclick = async () => {
     const c = design.components.find(x => x.id === b.dataset.dup);
     const copy = JSON.parse(JSON.stringify(c)); copy.id = uid(); copy.name += " copy";
-    design.components.splice(design.components.indexOf(c) + 1, 0, copy); touch();
+    design.components.splice(design.components.indexOf(c) + 1, 0, copy);
+    try { await syncDesignerMasses(design); touch(); }
+    catch (e) { toast(e.message); }
   });
   root.querySelectorAll("[data-open-laser]").forEach(b => b.onclick = () => {
     UI.laser.weapon = design.id + ":" + b.dataset.openLaser; UI.tab = "laser"; render();
@@ -1188,211 +1265,63 @@ function renderDesignDetail(root, design) {
     UI.missile.sel = b.dataset.openMissile; UI.missile.phases = defaultPhases(missileById(b.dataset.openMissile));
     UI.tab = "missile"; render();
   });
-  $("btn-add-comp").onclick = () => {
+  root.querySelectorAll("[data-size-component]").forEach(b => b.onclick = async () => {
+    const c = design.components.find(x => x.id === b.dataset.sizeComponent);
+    if (!c) return;
+    try { await sizeDesignerComponent(design, c, b.dataset.sizeMode); touch(); }
+    catch (e) { toast(e.message); }
+  });
+  $("btn-add-comp").onclick = async () => {
     const kind = $("add-kind").value;
     const st = S();
-    const c = { id: uid(), kind, name: kind, mass_t: 100 };
-    if (AUTO_KINDS.includes(kind)) c.auto = true;
-    if (kind === "magazine") { c.missile_id = DB.missiles[0]?.id; c.capacity = 10; }
-    if (kind === "reactor") { c.p_fusion_w = 1e12; c.rad_load_frac = st.as_rad_load_frac; }
-    if (kind === "nozzle") c.f_max_n = 1e7;
+    const c = { id: uid(), kind, name: kind, mass_t: 100, mass_override: kind === "other" };
+    if (kind === "magazine") { c.missile_id = DB.missiles[0]?.id; c.capacity = 10; c.missile_mass_ratio = 10; }
+    if (kind === "reactor") {
+      c.p_fusion_w = 1e12; c.rad_load_frac = st.as_rad_load_frac;
+      c.mw_per_kg = 1.333333; c.target_accel_mg = st.as_target_accel_mg;
+    }
+    if (kind === "nozzle") { c.f_max_n = 1e7; c.mw_per_kg = 4; }
     if (kind.startsWith("radiator")) {
       c.area_m2 = 1e5;
       c.t_k = kind === "radiator_hot" ? st.as_hot_t_k : st.as_low_t_k;
       c.eps = kind === "radiator_hot" ? st.as_hot_eps : st.as_low_eps;
       c.mw_per_kg = radiatorDefaultMwKg(kind);
-      delete c.mass_t;
+      c.mw_per_m2 = radiatorFlux_w_m2(c.t_k, c.eps) / 1e6;
+      c.kg_per_m2 = c.mw_per_m2 / c.mw_per_kg;
+      c.radiator_mode = "specific_power";
+      if (kind === "radiator_low") c.laser_waste_frac = 1;
     }
-    if (kind === "heat_sink") c.li_t = 50;
+    if (kind === "heat_sink") {
+      c.li_t = 50; c.energy_mj_per_kg = st.li_sink_mj_per_kg;
+      c.installed_mass_factor = st.as_sink_extra_mass_factor; c.endurance_s = st.as_sink_endurance_min * 60;
+    }
+    if (kind === "flywheel") {
+      c.material = "Carbon-fiber composite"; c.energy_mj_per_kg = FLYWHEEL_MATERIALS[c.material];
+      c.endurance_s = st.as_flywheel_fire_s;
+    }
     if (kind === "laser") {
       c.p_beam_w = 1.5e9; c.aperture_m = 3; c.lambda_m = 2e-7;
+      c.mw_per_kg = 0.006;
       c.eta_wall = st.laser_eta_wall; c.t_pulse_s = st.pulse_missile_s; c.count = 1;
       c.profiles = [{ id: uid(), name: "Missile kill",
                       material: "Ti-C hybrid (missile hull)",
                       t_pulse_s: st.pulse_missile_s, threshold_mm: st.kill_threshold_mm }];
     }
+    if (kind === "tank") c.tank_structure_frac = 1 / st.tank_prop_per_mass;
+    if (kind === "crew") { c.crew_count = 20; c.tonnes_per_crew = 2; }
+    if (kind === "structure") c.structure_frac = st.as_structure_frac;
     design.components.push(c);
-    touch();
+    try { await syncDesignerMasses(design); touch(); }
+    catch (e) { toast(e.message); }
   };
-  $("btn-autosize").onclick = () => runAutosize(design);
-
-  if (UI.autosize && UI.autosize.designId === design.id) renderAutosizeResult(design);
   updateDesignReport(design);
 }
 
-function componentModal(design, comp) {
-  const fields = KIND_FIELDS[comp.kind].map(([k, label]) => {
-    const value = k === "mw_per_kg" ? radiatorMwKg(comp) : comp[k];
-    if (k === "missile_id") {
-      const opts = DB.missiles.map(m =>
-        `<option value="${m.id}" ${m.id === comp.missile_id ? "selected" : ""}>${esc(m.name)}</option>`).join("");
-      return `<label>${esc(label)}</label><select id="cf-${k}">${opts}</select>`;
-    }
-    if (k === "note")
-      return `<label>${esc(label)}</label><input type="text" id="cf-${k}" value="${esc(value || "")}">`;
-    const choices = FIELD_CHOICES[comp.kind + "." + k];
-    if (choices)
-      return `<label>${esc(label)}</label><span>${choiceField("cf-" + k, value ?? choices[0].v, choices)}</span>`;
-    return `<label>${esc(label)}</label><input type="number" step="any" id="cf-${k}" value="${value ?? ""}">`;
-  }).join("");
-  const autoToggle = AUTO_KINDS.includes(comp.kind)
-    ? `<label>Auto-size</label><label class="matcheck"><input type="checkbox" id="cf-auto"
-        ${comp.auto ? "checked" : ""}> solver may resize this (uncheck to pin)</label>` : "";
-  const profileNote = comp.kind === "laser"
-    ? `<p class="note">Kill profiles (${(comp.profiles || []).length}) are edited and saved from the Laser Lab.</p>` : "";
-  modal(`${comp.kind} — ${design.name}`, `
-    <div class="grid2">
-      <label>Name</label><input type="text" id="cf-name" value="${esc(comp.name)}">
-      ${fields}
-      ${autoToggle}
-    </div>${profileNote}`, {
-    submitLabel: "Save",
-    onSubmit() {
-      comp.name = $("cf-name").value;
-      for (const [k] of KIND_FIELDS[comp.kind]) {
-        if (k === "missile_id" || k === "note") comp[k] = $("cf-" + k).value;
-        else { const v = num("cf-" + k); if (Number.isFinite(v)) comp[k] = v; }
-      }
-      if (comp.kind === "radiator_hot" || comp.kind === "radiator_low") delete comp.mass_t;
-      if ($("cf-auto")) comp.auto = $("cf-auto").checked;
-      touch();
-    },
-  });
-  for (const [k] of KIND_FIELDS[comp.kind])
-    if (FIELD_CHOICES[comp.kind + "." + k]) bindChoice("cf-" + k);
-}
-
-/* ---- auto-size ---------------------------------------------------------- */
-
-function autosizePayload(design) {
-  // Pinned components + ordnance (+ structure if pinned). Auto drive parts are
-  // excluded — the solver replaces their mass.
-  const s = sums(design);
-  let payload = s.ordnance_t + (design.structure_auto ? 0 : (design.structure_t || 0));
-  const auto = { reactor: false, nozzle: false, rad_hot: false, rad_low: false,
-                 tank: false, sink: false, flywheel: false };
-  const kindKey = { nozzle: "nozzle", radiator_hot: "rad_hot", radiator_low: "rad_low",
-                    tank: "tank", heat_sink: "sink", flywheel: "flywheel" };
-  let reactor = null;
-  for (const c of design.components) {
-    if (c.kind === "reactor" && !reactor) {
-      reactor = c;
-      if (c.auto) { auto.reactor = true; continue; }
-    } else if (kindKey[c.kind] && c.auto && !auto[kindKey[c.kind]]) {
-      auto[kindKey[c.kind]] = true;
-      continue; // first auto component of this category is solver-owned
-    }
-    payload += componentMass_t(c);
-  }
-  return { payload_t: payload, auto, reactor, s };
-}
-
-async function runAutosize(design) {
-  try {
-    const st = S();
-    const { payload_t, auto, reactor, s } = autosizePayload(design);
-    if (!reactor) throw new Error("Add a reactor first — the solver sizes the drive around one.");
-    const res = await calc("autosize", {
-      a_target: (num("as-target") || st.as_target_accel_mg) * st.g * 1e-3,
-      mr: design.mr,
-      payload_t,
-      p_fusion_pinned: auto.reactor ? null : reactor.p_fusion_w,
-      auto_nozzle: auto.nozzle, auto_rad_hot: auto.rad_hot, auto_rad_low: auto.rad_low,
-      auto_tank: auto.tank, auto_sink: auto.sink, auto_flywheel: auto.flywheel,
-      auto_structure: !!design.structure_auto,
-      ve_max: st.ve_max_m_s, f_exh: st.f_exh, eta_noz: st.eta_noz, sigma: st.sigma,
-      reactor_t_per_tw: st.as_reactor_t_per_tw,
-      nozzle_cap_factor: st.as_nozzle_cap_factor, nozzle_t_per_mn: st.as_nozzle_t_per_mn,
-      rad_load_frac: st.as_rad_load_frac,
-      hot_t_k: st.as_hot_t_k, hot_eps: st.as_hot_eps, hot_mw_per_kg: st.as_hot_mw_per_kg,
-      low_area_frac: st.as_low_area_frac, low_t_k: st.as_low_t_k,
-      low_eps: st.as_low_eps, low_mw_per_kg: st.as_low_mw_per_kg,
-      tank_mass_per_prop: 1 / st.tank_prop_per_mass,
-      structure_frac: st.as_structure_frac,
-      sink_endurance_s: st.as_sink_endurance_min * 60,
-      sink_extra_mass_factor: st.as_sink_extra_mass_factor,
-      li_sink_mj_per_kg: st.li_sink_mj_per_kg,
-      flywheel_fire_s: st.as_flywheel_fire_s, flywheel_mj_per_t: st.flywheel_mj_per_t,
-      lasers: expandLasers(s.lasers).map(l => ({ p_beam: l.p_beam, eta_wall: l.eta_wall })),
-    });
-    UI.autosize = { designId: design.id, res, reactorPinned: !auto.reactor };
-    renderAutosizeResult(design);
-  } catch (e) { toast(e.message); }
-}
-
-function renderAutosizeResult(design) {
-  const el = $("as-result");
-  if (!el || !UI.autosize) return;
-  const { res, reactorPinned } = UI.autosize;
-  const st = S();
-  const mg = a => (a / (st.g * 1e-3)).toFixed(2);
-  const rows = [
-    res.reactor_t != null ? ["Reactor", `${fmtSI(res.p_fusion_w, "W")} fusion`, res.reactor_t] : null,
-    res.nozzle_t != null ? ["Nozzle", `cap ${fmtSI(res.nozzle_cap_n, "N")}`, res.nozzle_t] : null,
-    res.hot_t != null ? ["Hot loop", `${fmtSI(res.hot_area_m2, "m²")} @ ${st.as_hot_t_k} K`, res.hot_t] : null,
-    res.low_t != null ? ["Low loop", `${fmtSI(res.low_area_m2, "m²")} @ ${st.as_low_t_k} K`, res.low_t] : null,
-    res.tank_t != null ? ["Tankage", `${fmtT(res.tank_cap_t)} propellant`, res.tank_t] : null,
-    res.sink_li_t != null ? ["Heat sink", `${fmtT(res.sink_li_t)} Li (${st.as_sink_endurance_min} min of fire)`, res.sink_t] : null,
-    res.flywheel_t != null ? ["Flywheels", `${st.as_flywheel_fire_s} s of full-suite fire`, res.flywheel_t] : null,
-    res.structure_t != null ? ["Structure", `${(st.as_structure_frac * 100).toFixed(0)}% of dry`, res.structure_t] : null,
-  ].filter(Boolean);
-  const oldMass = label => {
-    const kind = { Reactor: "reactor", Nozzle: "nozzle", "Hot loop": "radiator_hot",
-      "Low loop": "radiator_low", Tankage: "tank", "Heat sink": "heat_sink", Flywheels: "flywheel" }[label];
-    if (label === "Structure") return design.structure_t || 0;
-    const c = kind && design.components.find(x => x.kind === kind && x.auto);
-    return c ? componentMass_t(c) : 0;
-  };
-  el.innerHTML = `
-    ${res.feasible ? "" : `<p class="note bad">Infeasible: at MR ${design.mr} the drive and tankage
-      grow faster than the mass they push. Ceiling ≈ ${mg(res.a_max)} mg — numbers below are sized
-      just under it. Lower the MR or the scaling parameters to reach the target.</p>`}
-    <div class="readout">
-      <div class="r"><span class="k">Accel (wet)</span><span class="v ${res.feasible ? "accent" : "warn"}">${mg(res.a_achieved)} mg</span>
-        <span class="u">ceiling ${mg(res.a_max)} mg${reactorPinned ? " (reactor pinned)" : ""}</span></div>
-      <div class="r"><span class="k">Dry / wet</span><span class="v">${fmtT(res.dry_t)} / ${fmtT(res.wet_t)}</span></div>
-      <div class="r"><span class="k">Thrust @ Ve_max</span><span class="v">${fmtSI(res.thrust_n, "N")}</span></div>
-    </div>
-    <table><tr><th>Part</th><th>Sized to</th><th class="num">Before</th><th class="num">After</th></tr>
-      ${rows.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td class="num">${fmtT(oldMass(r[0]))}</td>
-        <td class="num ${r[2] > oldMass(r[0]) ? "warn" : "good"}">${fmtT(r[2])}</td></tr>`).join("")}
-    </table>
-    <div class="actions"><button id="btn-as-apply" class="primary">Apply to design</button></div>`;
-  $("btn-as-apply").onclick = () => applyAutosize(design);
-}
-
-function applyAutosize(design) {
-  const { res } = UI.autosize;
-  const st = S();
-  const first = (kind, auto = true) =>
-    design.components.find(c => c.kind === kind && (!auto || c.auto));
-  const reactor = first("reactor");
-  if (reactor && res.reactor_t != null) {
-    reactor.p_fusion_w = res.p_fusion_w;
-    reactor.rad_load_frac = st.as_rad_load_frac;
-    reactor.mass_t = res.reactor_t;
-  }
-  const nozzle = first("nozzle");
-  if (nozzle && res.nozzle_t != null) { nozzle.f_max_n = res.nozzle_cap_n; nozzle.mass_t = res.nozzle_t; }
-  const hot = first("radiator_hot");
-  if (hot && res.hot_t != null) {
-    hot.area_m2 = res.hot_area_m2; hot.t_k = st.as_hot_t_k; hot.eps = st.as_hot_eps;
-    hot.mw_per_kg = st.as_hot_mw_per_kg; delete hot.mass_t;
-  }
-  const low = first("radiator_low");
-  if (low && res.low_t != null) {
-    low.area_m2 = res.low_area_m2; low.t_k = st.as_low_t_k; low.eps = st.as_low_eps;
-    low.mw_per_kg = st.as_low_mw_per_kg; delete low.mass_t;
-  }
-  const tank = first("tank");
-  if (tank && res.tank_t != null) tank.mass_t = res.tank_t;
-  const sink = first("heat_sink");
-  if (sink && res.sink_li_t != null) { sink.li_t = res.sink_li_t; sink.mass_t = res.sink_t; }
-  const fly = first("flywheel");
-  if (fly && res.flywheel_t != null) fly.mass_t = res.flywheel_t;
-  if (design.structure_auto && res.structure_t != null) design.structure_t = res.structure_t;
-  toast(`Applied — ${fmtT(res.dry_t)} dry, ${fmtT(res.wet_t)} wet.`, true);
-  touch();
+async function sizeDesignerComponent(design, c, mode) {
+  const result = await syncDesignerMasses(design, { component_id: c.id, mode });
+  const resized = design.components.find(component => component.id === c.id);
+  const detail = result.action?.message || `auto-sized to ${fmtT(componentMass_t(resized))}`;
+  toast(`${resized?.name || c.name}: ${detail}.`, result.action?.feasible !== false);
 }
 
 async function updateDesignReport(design) {
@@ -1441,7 +1370,7 @@ async function updateDesignReport(design) {
       <h2>Live totals</h2>
       <div class="readout">
         <div class="r"><span class="k">Dry mass</span><span class="v">${fmtT(s.dry_t)}</span>
-          <span class="u">${fmtT(s.compMass_t)} comp + ${fmtT(s.ordnance_t)} ordnance + ${fmtT(design.structure_t)} structure</span></div>
+          <span class="u">${fmtT(s.compMass_t)} installed components + ${fmtT(s.ordnance_t)} loaded ordnance</span></div>
         <div class="r"><span class="k">Wet mass</span><span class="v">${fmtT(s.wet_t)}</span><span class="u">MR ${design.mr}</span></div>
         <div class="r"><span class="k">Propellant / tankage</span>
           <span class="v ${Math.abs(tankShort) > 0.005 * Math.max(s.propNeeded_t, 1) ? "warn" : "good"}">${fmtT(s.propNeeded_t)} / ${fmtT(s.tankCap_t)}</span></div>
@@ -1972,7 +1901,7 @@ function renderLaser(main) {
     L.dirty = true;
     renderLaser(main);
   };
-  if (L.weapon) $("btn-pf-save").onclick = () => {
+  if (L.weapon) $("btn-pf-save").onclick = async () => {
     rereadProfiles();
     const [did, cid] = L.weapon.split(":");
     const comp = designById(did)?.components.find(c => c.id === cid);
@@ -1980,6 +1909,7 @@ function renderLaser(main) {
     comp.profiles = JSON.parse(JSON.stringify(L.profiles));
     comp.p_beam_w = L.p_gw * 1e9; comp.aperture_m = L.ap;
     comp.lambda_m = L.lambda_nm * 1e-9; comp.eta_wall = L.wall; comp.t_pulse_s = L.pulse;
+    await syncDesignerMasses(designById(did));
     L.dirty = false;
     if ($("las-dirty")) { $("las-dirty").textContent = "saved"; $("las-dirty").classList.remove("on"); }
     toast(`Saved ${comp.name} with ${L.profiles.length} profiles.`, true);
@@ -2036,18 +1966,20 @@ function saveLaserToDesign() {
     <label>Design</label><select id="ls-design">${opts}</select>
     <label>Component name</label><input id="ls-name" value="New laser" class="wide">
     <label>Count</label><input type="number" min="1" step="1" id="ls-count" value="1">
-    <label>Mass per unit (t)</label><input type="number" step="any" id="ls-mass" value="100">
+    <label>Specific power (MW/kg)</label><input type="number" min="0" step="any" id="ls-mwkg" value="0.006">
     <label>Default pulse (s)</label><input type="number" step="any" id="ls-pulse" value="${L.pulse}">
   </div><p class="note">This installs on the shared design; every commissioned ship using that design inherits it.</p>`, {
     submitLabel: "Install & save",
-    onSubmit() {
+    async onSubmit() {
       const d = designById($("ls-design").value);
       const c = { id: uid(), kind: "laser", name: $("ls-name").value.trim() || "Laser",
-        mass_t: num("ls-mass"), count: Math.max(1, Math.round(num("ls-count") || 1)),
+        mass_t: 0, mass_override: false, mw_per_kg: Math.max(num("ls-mwkg") || 0.006, 1e-12),
+        count: Math.max(1, Math.round(num("ls-count") || 1)),
         p_beam_w: L.p_gw * 1e9, aperture_m: L.ap, lambda_m: L.lambda_nm * 1e-9,
         eta_wall: L.wall, t_pulse_s: num("ls-pulse") || L.pulse,
         profiles: JSON.parse(JSON.stringify(L.profiles)) };
       d.components.push(c);
+      await syncDesignerMasses(d);
       L.weapon = d.id + ":" + c.id; L.loadedWeapon = L.weapon; L.pulse = c.t_pulse_s; L.dirty = false;
       touch(); toast(`Installed ${c.name} on ${d.name}.`, true);
     },
@@ -3063,6 +2995,7 @@ function missileModal(m) {
       if (isNew) { DB.missiles.push(draft); UI.missile.sel = draft.id; }
       else Object.assign(m, draft);
       UI.missile.phases = defaultPhases(draft);
+      await syncAllDesignerMasses();
       touch();
     },
   });
@@ -4423,11 +4356,6 @@ function migrateRadiatorSchema() {
   }
   delete st.as_hot_kg_m2;
   delete st.as_low_kg_m2;
-  for (const d of DB.designs || []) for (const c of d.components || []) {
-    if (c.kind !== "radiator_hot" && c.kind !== "radiator_low") continue;
-    if (!Number.isFinite(c.mw_per_kg) || c.mw_per_kg <= 0) c.mw_per_kg = radiatorMwKg(c);
-    delete c.mass_t;
-  }
 }
 
 (async function boot() {
@@ -4444,6 +4372,13 @@ function migrateRadiatorSchema() {
   const missileMigrated = migrateMissileSchema();
   for (const s of DB.states) if (s.velocity_kms == null) s.velocity_kms = 0;
   migrateRadiatorSchema();
+  const designsBefore = JSON.stringify(DB.designs);
+  try { await syncAllDesignerMasses(); }
+  catch (e) {
+    $("main").innerHTML = `<p class="note bad">Could not normalize designer masses: ${esc(e.message)}</p>`;
+    return;
+  }
+  const designerMigrated = designsBefore !== JSON.stringify(DB.designs);
   if (!DB.system) DB.system = { epoch_s: 0, bodies: SOL_BODIES(), nav: {} };
   DB.system.nav = DB.system.nav || {};
   // Jovian moons joined the default system; graft them onto older saves.
@@ -4455,7 +4390,7 @@ function migrateRadiatorSchema() {
   const mapDefaults = { g_const: 6.674e-11, c_m_s: 299792458, map_tick_s: 3600,
                         map_substep_s: 60, map_project_d: 10 };
   for (const [k, v] of Object.entries(mapDefaults)) if (S()[k] == null) S()[k] = v;
-  if (missileMigrated) touch(false);
+  if (missileMigrated || designerMigrated) touch(false);
   render();
   window.addEventListener("resize", () => {
     clearTimeout(boot._t);

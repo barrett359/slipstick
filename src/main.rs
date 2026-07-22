@@ -107,6 +107,7 @@ fn build_router(state: Arc<AppState>) -> Router {
         .route("/api/calc/burn", post(calc_burn))
         .route("/api/calc/sprint", post(calc_sprint))
         .route("/api/calc/autosize", post(calc_autosize))
+        .route("/api/calc/designer", post(calc_designer))
         .route("/api/calc/laser", post(calc_laser))
         .route("/api/calc/laser_profiles", post(calc_laser_profiles))
         .route("/api/calc/radiator", post(calc_radiator))
@@ -250,6 +251,9 @@ async fn calc_sprint(Json(i): Json<physics::SprintIn>) -> Response {
 }
 async fn calc_autosize(Json(i): Json<physics::AutosizeIn>) -> Response {
     calc_response(physics::autosize(&i))
+}
+async fn calc_designer(Json(i): Json<physics::DesignerIn>) -> Response {
+    calc_response(physics::designer(&i))
 }
 async fn calc_laser_profiles(Json(i): Json<physics::LaserProfilesIn>) -> Response {
     calc_response(physics::laser_profiles(&i))
@@ -421,10 +425,7 @@ mod api_tests {
         assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
         let bytes = to_bytes(response.into_body(), usize::MAX).await.unwrap();
         let value: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
-        assert!(value["error"]
-            .as_str()
-            .unwrap()
-            .contains("system body sol"));
+        assert!(value["error"].as_str().unwrap().contains("system body sol"));
     }
 
     #[tokio::test]
@@ -445,6 +446,15 @@ mod api_tests {
         assert!(javascript.contains("invalidNumberPath(DB)"));
         assert!(javascript.contains("await saveResponseError(res)"));
         assert!(javascript.contains("Save failed: "));
+        assert!(javascript.contains("manual override"));
+        assert!(javascript.contains("data-size-mode=\"reactor-min\""));
+        assert!(javascript.contains("data-size-mode=\"reactor-max\""));
+        assert!(javascript.contains("data-size-mode=\"radiator-low\""));
+        assert!(javascript.contains("crew: [[\"crew_count\""));
+        assert!(javascript.contains("kind: \"structure\""));
+        assert!(!javascript.contains("id=\"btn-autosize\""));
+        assert!(javascript.contains("calc(\"designer\""));
+        assert!(!javascript.contains("function syncAutomaticMasses"));
     }
 
     #[tokio::test]
@@ -498,6 +508,37 @@ mod api_tests {
                 Request::builder()
                     .method("POST")
                     .uri("/api/calc/gear")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(input_bytes))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let actual: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(actual, expected);
+    }
+
+    #[tokio::test]
+    async fn designer_cli_and_http_results_are_identical() {
+        let fleet: serde_json::Value =
+            serde_json::from_str(include_str!("default_fleet.json")).unwrap();
+        let input = serde_json::json!({
+            "settings": fleet["settings"].clone(),
+            "missiles": fleet["missiles"].clone(),
+            "design": fleet["designs"][0].clone(),
+            "action": {"component_id": "bb-radhot", "mode": "radiator-hot"}
+        });
+        let input_bytes = serde_json::to_vec(&input).unwrap();
+        let expected = agent::dispatch_calculation("designer", input.clone()).unwrap();
+        let expected: serde_json::Value =
+            serde_json::from_slice(&serde_json::to_vec(&expected).unwrap()).unwrap();
+        let response = app()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/calc/designer")
                     .header(header::CONTENT_TYPE, "application/json")
                     .body(Body::from(input_bytes))
                     .unwrap(),

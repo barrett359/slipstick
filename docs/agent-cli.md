@@ -94,6 +94,8 @@ All HTTP calculators use the same Rust functions as the CLI:
 ```sh
 slipstick agent schema gear
 slipstick agent calculate gear --input gear.json
+slipstick agent schema designer
+slipstick agent calculate designer --input designer-sizing.json
 slipstick agent schema lidar_pd
 slipstick agent calculate lidar_pd --input lidar-scenario.json
 slipstick agent schema missile_engagement
@@ -101,7 +103,7 @@ slipstick agent calculate missile_engagement --input engagement.json
 ```
 
 The catalog returned by `capabilities` is authoritative. It covers settings,
-drive and travel, auto-sizing, laser profiles, radiators and heat, staged
+drive and travel, designer component sizing, laser profiles, radiators and heat, staged
 missiles and intercepts, the System Map navigation layer, and Lidar/PD.
 
 ## Map-backed combat

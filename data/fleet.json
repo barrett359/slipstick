@@ -4,37 +4,39 @@
       "class": "Tiberious-Class BB",
       "components": [
         {
-          "id": "je790oqf",
-          "kind": "other",
-          "mass_t": 850,
-          "name": "Crew Support",
-          "note": "170 Crew"
-        },
-        {
-          "auto": true,
           "id": "pjhv26kj",
           "kind": "reactor",
-          "mass_t": 100,
+          "mass_override": false,
+          "mass_t": 5388.313954042119,
+          "mw_per_kg": 1,
           "name": "reactor",
-          "p_fusion_w": 50000000000000,
-          "rad_load_frac": 0.01
+          "p_fusion_w": 5388313954042.119,
+          "rad_load_frac": 0.01,
+          "target_accel_mg": 600
         },
         {
-          "auto": true,
+          "endurance_s": 368.5411764705882,
+          "energy_mj_per_kg": 4.6,
           "id": "zd3lkwzy",
+          "installed_mass_factor": 1.1013215859030836,
           "kind": "heat_sink",
           "li_t": 454,
-          "mass_t": 500,
+          "mass_override": false,
+          "mass_t": 499.99999999999994,
           "name": "heat_sink"
         },
         {
-          "area_m2": 150000,
-          "auto": true,
+          "area_m2": 12349.83653473446,
           "eps": 0.95,
           "id": "6kz1rzi8",
+          "kg_per_m2": 4.363064999999999,
           "kind": "radiator_hot",
-          "mw_per_kg": 1,
+          "mass_override": false,
+          "mass_t": 44.90261628368433,
+          "mw_per_kg": 1.2,
+          "mw_per_m2": 4.363064999999999,
           "name": "radiator_hot",
+          "radiator_mode": "specific_power",
           "t_k": 3000
         },
         {
@@ -44,7 +46,9 @@
           "id": "yve4w0hg",
           "kind": "laser",
           "lambda_m": 5.32e-7,
+          "mass_override": false,
           "mass_t": 1250,
+          "mw_per_kg": 0.0008,
           "name": "Main",
           "p_beam_w": 1000000000,
           "profiles": [
@@ -60,51 +64,89 @@
         },
         {
           "area_m2": 400000,
-          "auto": true,
           "eps": 0.9,
           "id": "nu6mzkq5",
+          "kg_per_m2": 0.49067307692307693,
           "kind": "radiator_low",
+          "laser_waste_frac": 0.22513235294117645,
+          "mass_override": false,
+          "mass_t": 196.26923076923077,
           "mw_per_kg": 0.0065,
+          "mw_per_m2": 0.003189375,
           "name": "radiator_low",
+          "radiator_mode": "specific_power",
           "t_k": 500
         },
         {
-          "auto": true,
+          "endurance_s": 135,
+          "energy_mj_per_kg": 25,
           "id": "c4mb0o4v",
           "kind": "flywheel",
-          "mass_t": 100,
+          "mass_override": false,
+          "mass_t": 36,
+          "material": "CNT composite",
           "name": "flywheel"
         },
         {
-          "auto": true,
           "id": "yl7ldvx2",
           "kind": "tank",
-          "mass_t": 2500,
-          "name": "tank"
+          "mass_override": false,
+          "mass_t": 3488.104974041033,
+          "name": "tank",
+          "tank_structure_frac": 0.04
         },
         {
-          "capacity": 10,
-          "id": "ki2gi2ju",
+          "id": "e4im86ee-structure",
+          "kind": "structure",
+          "mass_override": false,
+          "mass_t": 4024.736508512169,
+          "name": "Primary structure",
+          "structure_frac": 0.3
+        },
+        {
+          "crew_count": 170,
+          "id": "0l7fihsl",
+          "kind": "crew",
+          "mass_override": false,
+          "mass_t": 850,
+          "name": "crew",
+          "tonnes_per_crew": 5
+        },
+        {
+          "capacity": 20,
+          "id": "6lgeyrnk",
           "kind": "magazine",
-          "mass_t": 100,
+          "mass_override": false,
+          "mass_t": 399.99999999999994,
+          "missile_id": "w5yp51vj",
+          "missile_mass_ratio": 1,
           "name": "magazine"
+        },
+        {
+          "f_max_n": 328456223.45568174,
+          "id": "ee6vj2ln",
+          "kind": "nozzle",
+          "mass_override": false,
+          "mass_t": 862.1975865711646,
+          "mw_per_kg": 4,
+          "name": "nozzle"
         }
       ],
       "id": "e4im86ee",
       "mr": 6,
       "name": "Tiberious",
-      "structure_auto": true,
-      "structure_t": 4000
+      "structure_auto": false,
+      "structure_t": 0
     }
   ],
   "events": [
     {
       "date": "",
       "deltas": {},
-      "id": "y565uss4",
+      "id": "syfe3ypp",
       "kind": "note",
       "note": "Commissioned at full load.",
-      "ship_id": "9wy7jk53"
+      "ship_id": "sdoqr5ve"
     }
   ],
   "materials": [
@@ -239,15 +281,15 @@
     {
       "design_id": "e4im86ee",
       "flywheel_mj": 900000,
-      "id": "9wy7jk53",
+      "id": "sdoqr5ve",
       "magazines": {
-        "ki2gi2ju": 10
+        "6lgeyrnk": 20
       },
       "name": "Unnamed Tiberious-Class BB",
-      "propellant_t": 51253.64490384616,
+      "propellant_t": 79629.2671724631,
       "radiator_hot_pct": 100,
       "radiator_low_pct": 100,
-      "sink_capacity_mj": 2088399.9999999995,
+      "sink_capacity_mj": 2088400.0,
       "sink_mj": 0,
       "velocity_kms": 0
     }
@@ -308,7 +350,7 @@
       {
         "a_m": 778570000000,
         "id": "jupiter",
-        "mass_kg": 1.8982e+27,
+        "mass_kg": 1.8981999999999999e+27,
         "name": "Jupiter",
         "parent": "sol",
         "phase0_deg": 34.4,

@@ -220,6 +220,9 @@ pub struct Component {
     /// Whether auto-sizing owns this component's size.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub auto: Option<bool>,
+    /// Whether the designer should use mass_t instead of deriving mass from the component sizing fields.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mass_override: Option<bool>,
     /// Fusion power in watts.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub p_fusion_w: Option<f64>,
@@ -238,9 +241,51 @@ pub struct Component {
     /// Radiator emissivity.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub eps: Option<f64>,
-    /// Radiator specific rejection in megawatts per kilogram.
+    /// Component specific power or radiator specific rejection in megawatts per kilogram.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mw_per_kg: Option<f64>,
+    /// Radiator sizing method: specific_power or areal.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub radiator_mode: Option<String>,
+    /// Radiator areal density in kilograms per square metre.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kg_per_m2: Option<f64>,
+    /// Radiator rejection in megawatts per square metre.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mw_per_m2: Option<f64>,
+    /// Fraction of total laser waste heat assigned to a low-temperature radiator.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub laser_waste_frac: Option<f64>,
+    /// Requested storage or heat-acceptance endurance in seconds.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub endurance_s: Option<f64>,
+    /// Selected storage material name.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub material: Option<String>,
+    /// Storage energy or heat capacity in megajoules per kilogram.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub energy_mj_per_kg: Option<f64>,
+    /// Installed heat-sink mass divided by active heat-storage material mass.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub installed_mass_factor: Option<f64>,
+    /// Tank structure mass divided by carried propellant mass.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tank_structure_frac: Option<f64>,
+    /// Loaded missile mass divided by magazine structure mass.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub missile_mass_ratio: Option<f64>,
+    /// Crew complement supported by a crew compartment.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub crew_count: Option<u32>,
+    /// Compartment tonnes per supported crew member.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tonnes_per_crew: Option<f64>,
+    /// Structure mass divided by the mass of the rest of the dry ship.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub structure_frac: Option<f64>,
+    /// Wet acceleration target used by reactor sizing actions, in milligee.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub target_accel_mg: Option<f64>,
     /// Lithium inventory in tonnes.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub li_t: Option<f64>,
@@ -515,6 +560,16 @@ impl FleetDocument {
                     ("area_m2", component.area_m2),
                     ("t_k", component.t_k),
                     ("mw_per_kg", component.mw_per_kg),
+                    ("kg_per_m2", component.kg_per_m2),
+                    ("mw_per_m2", component.mw_per_m2),
+                    ("endurance_s", component.endurance_s),
+                    ("energy_mj_per_kg", component.energy_mj_per_kg),
+                    ("installed_mass_factor", component.installed_mass_factor),
+                    ("tank_structure_frac", component.tank_structure_frac),
+                    ("missile_mass_ratio", component.missile_mass_ratio),
+                    ("tonnes_per_crew", component.tonnes_per_crew),
+                    ("structure_frac", component.structure_frac),
+                    ("target_accel_mg", component.target_accel_mg),
                     ("li_t", component.li_t),
                     ("p_beam_w", component.p_beam_w),
                     ("aperture_m", component.aperture_m),
@@ -532,6 +587,7 @@ impl FleetDocument {
                     ("rad_load_frac", component.rad_load_frac),
                     ("eps", component.eps),
                     ("eta_wall", component.eta_wall),
+                    ("laser_waste_frac", component.laser_waste_frac),
                 ] {
                     if value
                         .is_some_and(|value| !value.is_finite() || !(0.0..=1.0).contains(&value))

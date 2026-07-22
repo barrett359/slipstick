@@ -319,6 +319,7 @@ fn calculator_names() -> Vec<&'static str> {
         "burn",
         "sprint",
         "autosize",
+        "designer",
         "laser",
         "laser_profiles",
         "radiator",
@@ -408,6 +409,14 @@ fn enrich_schema(schema: &mut Value) {
 }
 
 fn field_unit(name: &str) -> Option<&'static str> {
+    match name {
+        "mw_per_kg" => return Some("MW/kg"),
+        "kg_per_m2" => return Some("kg/m^2"),
+        "mw_per_m2" => return Some("MW/m^2"),
+        "tonnes_per_crew" => return Some("t/person"),
+        "target_accel_mg" => return Some("mg"),
+        _ => {}
+    }
     let suffixes = [
         ("_mj_per_kg", "MJ/kg"),
         ("_mj_per_t", "MJ/t"),
@@ -545,6 +554,7 @@ fn domain_schema(domain: &str) -> Option<Value> {
         "burn" => schema_pair::<physics::BurnIn, physics::BurnOut>(),
         "sprint" => schema_pair::<physics::SprintIn, physics::SprintOut>(),
         "autosize" => schema_pair::<physics::AutosizeIn, physics::AutosizeOut>(),
+        "designer" => schema_pair::<physics::DesignerIn, physics::DesignerOut>(),
         "laser" => schema_pair::<physics::LaserIn, physics::LaserOut>(),
         "laser_profiles" => schema_pair::<physics::LaserProfilesIn, physics::LaserProfilesOut>(),
         "radiator" => schema_pair::<physics::RadiatorIn, physics::RadiatorOut>(),
@@ -756,6 +766,7 @@ pub(crate) fn dispatch_calculation(name: &str, value: Value) -> Result<Value, Ag
         "burn" => calculate!(value, physics::BurnIn, physics::timed_burn),
         "sprint" => calculate!(value, physics::SprintIn, physics::sprint),
         "autosize" => calculate!(value, physics::AutosizeIn, physics::autosize),
+        "designer" => calculate!(value, physics::DesignerIn, physics::designer),
         "laser" => calculate!(value, physics::LaserIn, physics::laser),
         "laser_profiles" => calculate!(value, physics::LaserProfilesIn, physics::laser_profiles),
         "radiator" => calculate!(value, physics::RadiatorIn, physics::radiator),
@@ -1276,7 +1287,9 @@ fn evaluate_design(fleet: &model::FleetDocument, design_id: &str) -> Result<Valu
         } else {
             1.0
         };
-        let mass = if c.kind == "radiator_hot" || c.kind == "radiator_low" {
+        let mass = if let Some(mass) = c.mass_t {
+            mass
+        } else if c.kind == "radiator_hot" || c.kind == "radiator_low" {
             let power = c.area_m2.unwrap_or(0.0)
                 * c.eps.unwrap_or(0.0)
                 * fleet.settings.sigma
@@ -1306,9 +1319,18 @@ fn evaluate_design(fleet: &model::FleetDocument, design_id: &str) -> Result<Valu
                 }
             }
             "heat_sink" => {
-                sink_mj += c.li_t.unwrap_or(0.0) * 1000.0 * fleet.settings.li_sink_mj_per_kg
+                sink_mj += c.li_t.unwrap_or(0.0)
+                    * 1000.0
+                    * c.energy_mj_per_kg
+                        .unwrap_or(fleet.settings.li_sink_mj_per_kg)
             }
-            "flywheel" => flywheel_mj += c.mass_t.unwrap_or(0.0) * fleet.settings.flywheel_mj_per_t,
+            "flywheel" => {
+                flywheel_mj += c.mass_t.unwrap_or(0.0)
+                    * c.energy_mj_per_kg
+                        .filter(|value| *value > 0.0)
+                        .map(|value| value * 1000.0)
+                        .unwrap_or(fleet.settings.flywheel_mj_per_t)
+            }
             "laser" => {
                 for _ in 0..c.count.unwrap_or(1) {
                     lasers.push(physics::LaserSpec {
@@ -1334,7 +1356,10 @@ fn evaluate_design(fleet: &model::FleetDocument, design_id: &str) -> Result<Valu
                 }
             }
             "tank" => {
-                tank_capacity_t += c.mass_t.unwrap_or(0.0) * fleet.settings.tank_prop_per_mass
+                tank_capacity_t += c.mass_t.unwrap_or(0.0)
+                    / c.tank_structure_frac
+                        .filter(|value| *value > 0.0)
+                        .unwrap_or(1.0 / fleet.settings.tank_prop_per_mass)
             }
             _ => {}
         }
@@ -1577,11 +1602,7 @@ fn simulate_command(root: &Path, args: SimulateArgs) -> Result<Envelope, AgentEr
     }
 }
 
-fn simulate_validate(
-    root: &Path,
-    draft_id: &str,
-    input: &Path,
-) -> Result<Envelope, AgentError> {
+fn simulate_validate(root: &Path, draft_id: &str, input: &Path) -> Result<Envelope, AgentError> {
     let draft = draft_dir(root, draft_id)?;
     let fleet = model::FleetDocument::from_value(read_json_file(&draft.join("fleet.json"))?)
         .map_err(AgentError::validation)?;
@@ -1629,9 +1650,7 @@ fn simulate_place(
         .map_err(AgentError::validation)?;
     let ship_ids: Vec<&str> = ships_csv.split(',').map(str::trim).collect();
     if ship_ids.len() < 2 {
-        return Err(AgentError::validation(
-            "at least two ship IDs are required",
-        ));
+        return Err(AgentError::validation("at least two ship IDs are required"));
     }
     for id in &ship_ids {
         if !fleet.states.iter().any(|s| s.id == *id) {
@@ -1639,9 +1658,7 @@ fn simulate_place(
         }
     }
     if !separation_m.is_finite() || separation_m <= 0.0 {
-        return Err(AgentError::validation(
-            "separation_m must be positive",
-        ));
+        return Err(AgentError::validation("separation_m must be positive"));
     }
     let max_body_extent = fleet
         .system
@@ -1712,9 +1729,7 @@ fn simulate_template(
         .map_err(AgentError::validation)?;
     let ship_ids: Vec<&str> = ships_csv.split(',').map(str::trim).collect();
     if ship_ids.len() < 2 {
-        return Err(AgentError::validation(
-            "at least two ship IDs are required",
-        ));
+        return Err(AgentError::validation("at least two ship IDs are required"));
     }
     if !matches!(engagement, "duel" | "ambush" | "pursuit") {
         return Err(AgentError::validation(
@@ -1775,20 +1790,18 @@ fn simulate_template(
                 "landed_on": null,
             }),
         );
-        let max_laser_range = design
-            .map(|d| {
-                d.components
-                    .iter()
-                    .filter(|c| c.kind == "laser")
-                    .filter_map(|c| {
-                        c.profiles
-                            .iter()
-                            .filter_map(|p| p.chosen_range_m)
-                            .max_by(f64::total_cmp)
-                    })
-                    .max_by(f64::total_cmp)
-            })
-            .flatten();
+        let max_laser_range = design.and_then(|d| {
+            d.components
+                .iter()
+                .filter(|c| c.kind == "laser")
+                .filter_map(|c| {
+                    c.profiles
+                        .iter()
+                        .filter_map(|p| p.chosen_range_m)
+                        .max_by(f64::total_cmp)
+                })
+                .max_by(f64::total_cmp)
+        });
         let sensor_range = separation_m * 2.0;
         let missile_range = separation_m;
         let magazine_count: u32 = design
@@ -1824,7 +1837,7 @@ fn simulate_template(
                 "missile_range_m": missile_range,
                 "missile_salvo": salvo,
                 "defensive_reserve": defensive_reserve,
-                "laser_fire": max_laser_range.is_some() || design.map_or(false, |d| d.components.iter().any(|c| c.kind == "laser")),
+                "laser_fire": max_laser_range.is_some() || design.is_some_and(|d| d.components.iter().any(|c| c.kind == "laser")),
                 "retreat_integrity": 0.2,
                 "target_priority": target_ids,
             },
@@ -1860,11 +1873,7 @@ fn simulate_template(
     ))
 }
 
-fn simulate_quick(
-    root: &Path,
-    draft_id: &str,
-    input: &Path,
-) -> Result<Envelope, AgentError> {
+fn simulate_quick(root: &Path, draft_id: &str, input: &Path) -> Result<Envelope, AgentError> {
     let draft = draft_dir(root, draft_id)?;
     let fleet = model::FleetDocument::from_value(read_json_file(&draft.join("fleet.json"))?)
         .map_err(AgentError::validation)?;
@@ -1960,11 +1969,7 @@ fn simulate_quick(
         format!(
             "{}: {} wins {:.0}% of {} samples, representative ends at {:.0}s",
             scenario.name,
-            result
-                .representative
-                .winner
-                .as_deref()
-                .unwrap_or("draw"),
+            result.representative.winner.as_deref().unwrap_or("draw"),
             result
                 .ensemble
                 .win_probability

@@ -50,6 +50,7 @@ and one commissioned battleship.
 | `burn` | timed burn, prograde or retrograde: duration → Δv, end velocity, distance covered; clamps at the reserve floor |
 | `sprint` | max-velocity intercept: burn everything above the floor accelerating, then coast — arrive fast, don't stop |
 | `autosize` | linear fixed point for dry mass: drive/radiator/tank masses scale with the thrust they must support; reports the accel ceiling honestly when the target is infeasible |
+| `designer` | authoritative component mass normalization and component-local sizing actions used identically by the UI, HTTP API, and agent CLI |
 | `laser` | d = 1.22λR/D; Φ = 4P/(πd²); vaporization drilling; per-shot electrical/waste, shots per bank, sink endurance |
 | `laser_profiles` | penetration, diffraction spot, irradiance, pulse energy, and fluence vs range; kill and 1.5× open-fire ranges per profile |
 | `radiator` | q = ε·σ·T⁴·A × integrity |
@@ -104,11 +105,13 @@ CLI results are written as artifacts.
 Missiles store a payload plus ordered stages. Each stage chooses metallic
 hydrogen, antimatter thermal at an ISP tier, fusion bus, or a custom exhaust
 velocity and carries explicit dry/propellant mass, ignition acceleration, and
-jettison behavior. Laser wavelength,
-radiator temperature, and pulse lengths are likewise option selects with a
-custom escape hatch. Defaults for all of them live in `settings`, as do the
-auto-size scaling parameters (`as_*`: reactor t/TW, radiator MW/kg, nozzle
-t/MN, structure fraction, sink endurance minutes, flywheel fire seconds).
+jettison behavior. In the Designer, component mass is derived from engineering
+inputs and only becomes editable when **manual mass override** is checked.
+Reactor power can be sized at either end of the drive gearing range; nozzle,
+hot/low radiators, heat storage, flywheels, tankage, magazines, crew spaces,
+and primary structure each have a local sizing action. Radiators support either
+MW/kg or kg/m² plus MW/m², and flywheels use a selectable material energy
+density. Legacy `as_*` settings remain as defaults and calculator inputs.
 Unmapped ship states track a scalar velocity ledger. Once placed, the System
 Map's 2D vector is authoritative and Drive & Travel programs the same nav-burn
 state; the scalar value remains a derived compatibility readout.
