@@ -1,6 +1,112 @@
 {
-  "designs": [],
-  "events": [],
+  "designs": [
+    {
+      "class": "Tiberious-Class BB",
+      "components": [
+        {
+          "id": "je790oqf",
+          "kind": "other",
+          "mass_t": 850,
+          "name": "Crew Support",
+          "note": "170 Crew"
+        },
+        {
+          "auto": true,
+          "id": "pjhv26kj",
+          "kind": "reactor",
+          "mass_t": 100,
+          "name": "reactor",
+          "p_fusion_w": 50000000000000,
+          "rad_load_frac": 0.01
+        },
+        {
+          "auto": true,
+          "id": "zd3lkwzy",
+          "kind": "heat_sink",
+          "li_t": 454,
+          "mass_t": 500,
+          "name": "heat_sink"
+        },
+        {
+          "area_m2": 150000,
+          "auto": true,
+          "eps": 0.95,
+          "id": "6kz1rzi8",
+          "kind": "radiator_hot",
+          "mw_per_kg": 1,
+          "name": "radiator_hot",
+          "t_k": 3000
+        },
+        {
+          "aperture_m": 31.9,
+          "count": 1,
+          "eta_wall": 0.15,
+          "id": "yve4w0hg",
+          "kind": "laser",
+          "lambda_m": 5.32e-7,
+          "mass_t": 1250,
+          "name": "Main",
+          "p_beam_w": 1000000000,
+          "profiles": [
+            {
+              "id": "0kea692m",
+              "material": "Aluminum",
+              "name": "Ship kill",
+              "t_pulse_s": 0.1,
+              "threshold_mm": 10
+            }
+          ],
+          "t_pulse_s": 0.01
+        },
+        {
+          "area_m2": 400000,
+          "auto": true,
+          "eps": 0.9,
+          "id": "nu6mzkq5",
+          "kind": "radiator_low",
+          "mw_per_kg": 0.0065,
+          "name": "radiator_low",
+          "t_k": 500
+        },
+        {
+          "auto": true,
+          "id": "c4mb0o4v",
+          "kind": "flywheel",
+          "mass_t": 100,
+          "name": "flywheel"
+        },
+        {
+          "auto": true,
+          "id": "yl7ldvx2",
+          "kind": "tank",
+          "mass_t": 2500,
+          "name": "tank"
+        },
+        {
+          "capacity": 10,
+          "id": "ki2gi2ju",
+          "kind": "magazine",
+          "mass_t": 100,
+          "name": "magazine"
+        }
+      ],
+      "id": "e4im86ee",
+      "mr": 6,
+      "name": "Tiberious",
+      "structure_auto": true,
+      "structure_t": 4000
+    }
+  ],
+  "events": [
+    {
+      "date": "",
+      "deltas": {},
+      "id": "y565uss4",
+      "kind": "note",
+      "note": "Commissioned at full load.",
+      "ship_id": "9wy7jk53"
+    }
+  ],
   "materials": [
     {
       "e_vap_mj": 13.6,
@@ -53,7 +159,38 @@
       "rho": 920
     }
   ],
-  "missiles": [],
+  "missiles": [
+    {
+      "default_phases": [
+        {
+          "coast_to_range_m": 25000000,
+          "prop_frac": 0.35,
+          "stage_id": "83qxdmgf"
+        },
+        {
+          "coast_to_range_m": null,
+          "prop_frac": 0.65,
+          "stage_id": "83qxdmgf"
+        }
+      ],
+      "id": "w5yp51vj",
+      "name": "Optimized fusion bus (8 subs)",
+      "note": "8 MH submunitions; 431.7 kg wet each, 36.0 km/s terminal Δv each.",
+      "payload_kg": 3453.5334346469,
+      "stages": [
+        {
+          "a0_g": 1.3,
+          "dry_mass_kg": 7939.329775049771,
+          "id": "83qxdmgf",
+          "isp_s": 23129.459734964323,
+          "jettison": false,
+          "name": "Optimized fusion bus",
+          "propellant_kg": 8607.136790303328,
+          "propulsion": "fusion"
+        }
+      ]
+    }
+  ],
   "schema_version": 2,
   "settings": {
     "as_flywheel_fire_s": 30,
@@ -98,7 +235,23 @@
     "ve_gear_min_m_s": 21000,
     "ve_max_m_s": 2300000
   },
-  "states": [],
+  "states": [
+    {
+      "design_id": "e4im86ee",
+      "flywheel_mj": 900000,
+      "id": "9wy7jk53",
+      "magazines": {
+        "ki2gi2ju": 10
+      },
+      "name": "Unnamed Tiberious-Class BB",
+      "propellant_t": 51253.64490384616,
+      "radiator_hot_pct": 100,
+      "radiator_low_pct": 100,
+      "sink_capacity_mj": 2088399.9999999995,
+      "sink_mj": 0,
+      "velocity_kms": 0
+    }
+  ],
   "system": {
     "bodies": [
       {
@@ -155,7 +308,7 @@
       {
         "a_m": 778570000000,
         "id": "jupiter",
-        "mass_kg": 1.8981999999999999e+27,
+        "mass_kg": 1.8982e+27,
         "name": "Jupiter",
         "parent": "sol",
         "phase0_deg": 34.4,
